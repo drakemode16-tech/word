@@ -1,0 +1,2018 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>拾词 · 闪卡背单词</title>
+<meta name="description" content="拾词 · 闪卡背单词：CSV 导入、艾宾浩斯遗忘曲线复习计划、分组学习、速刷分拣，可安装为本地应用。">
+<meta name="theme-color" content="#F6F1E7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="拾词">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============ 基础与主题 ============ */
+:root{
+  --paper:#F6F1E7; --paper-deep:#EFE7D6; --card:#FFFDF7;
+  --ink:#22201C; --ink-soft:#6F6658; --line:#E0D6C2;
+  --red:#C13B22; --red-soft:#F3DECF;
+  --green:#2F5D4E; --green-soft:#DCE7DF;
+  --blue:#6F8FA3;
+  --serif-en:'EB Garamond','Noto Serif SC',serif;
+  --serif-cn:'Noto Serif SC',serif;
+  --sans:'Noto Sans SC',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--sans); font-size:15px; line-height:1.7;
+  min-height:100vh; -webkit-tap-highlight-color:transparent;
+}
+body::after{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  opacity:.05; mix-blend-mode:multiply;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--red); color:#FBF6EC}
+button{font-family:inherit; cursor:pointer; color:inherit; background:none; border:none}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--red); outline-offset:2px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--paper)}
+::-webkit-scrollbar-thumb{background:#CFC4AB;border-radius:5px;border:2px solid var(--paper)}
+
+/* ============ 顶栏 ============ */
+#topbar{border-bottom:1px solid var(--line)}
+.topbar-inner{
+  max-width:1060px;margin:0 auto;padding:16px 36px;
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.seal{
+  width:34px;height:34px;background:var(--red);color:#FBF6EC;
+  font-family:var(--serif-cn);font-weight:600;font-size:19px;
+  display:grid;place-items:center;border-radius:3px;
+  transform:rotate(-4deg);box-shadow:0 1px 0 rgba(0,0,0,.18);
+}
+.brand-name{font-family:var(--serif-cn);font-weight:700;font-size:19px;letter-spacing:.08em}
+.brand-sub{font-family:var(--serif-en);font-size:11px;letter-spacing:.34em;color:var(--ink-soft);margin-left:2px;transform:translateY(2px)}
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.btn-import-top{
+  display:flex;align-items:center;gap:8px;
+  border:1px solid var(--ink);border-radius:3px;padding:8px 16px;
+  font-size:13.5px;font-weight:500;letter-spacing:.05em;
+  transition:background .2s,color .2s;
+}
+.btn-import-top:hover{background:var(--ink);color:var(--paper)}
+.btn-import-top svg{width:15px;height:15px}
+.btn-install{
+  position:relative;display:flex;align-items:center;gap:8px;
+  border:1px solid #C6BBA3;border-radius:3px;padding:8px 14px;
+  font-size:13.5px;color:var(--ink-soft);letter-spacing:.05em;
+  transition:border-color .2s,color .2s;
+}
+.btn-install:hover{border-color:var(--ink);color:var(--ink)}
+.btn-install svg{width:15px;height:15px}
+.btn-install .dot{
+  position:absolute;top:-3px;right:-3px;width:7px;height:7px;border-radius:50%;
+  background:var(--red);display:none;box-shadow:0 0 0 2px var(--paper);
+}
+.btn-install.ready .dot{display:block}
+body.view-study #topbar{display:none}
+
+/* 独立窗口（PWA standalone）安全区适配 */
+body.standalone .topbar-inner{padding-top:calc(16px + env(safe-area-inset-top))}
+body.standalone main{
+  padding-left:max(36px,env(safe-area-inset-left));
+  padding-right:max(36px,env(safe-area-inset-right));
+}
+body.standalone #studyView{
+  padding-top:calc(22px + env(safe-area-inset-top));
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+  padding-left:max(24px,env(safe-area-inset-left));
+  padding-right:max(24px,env(safe-area-inset-right));
+}
+
+main{max-width:1060px;margin:0 auto;padding:0 36px 90px}
+
+/* ============ 视图切换 ============ */
+.view{display:none}
+.view.active{display:block;animation:viewIn .5s cubic-bezier(.22,.61,.36,1) both}
+@keyframes viewIn{from{opacity:0;transform:translateY(12px)}}
+
+.eyebrow{font-size:11px;letter-spacing:.34em;color:var(--red);font-weight:500;margin-bottom:14px}
+h2.serif{font-family:var(--serif-cn);font-weight:700;font-size:clamp(24px,3.4vw,32px);letter-spacing:.03em}
+
+/* ============ 牌组分隔签栏 ============ */
+.deck-strip{
+  display:flex;gap:8px;overflow-x:auto;
+  padding:30px 2px 12px;margin-bottom:30px;
+  border-bottom:1px dashed #D8CDB5;scrollbar-width:thin;
+}
+.deck-tab{
+  position:relative;flex:none;display:flex;flex-direction:column;gap:3px;
+  border:1px solid var(--line);border-radius:4px;
+  background:var(--paper-deep);
+  padding:8px 15px 10px;min-width:104px;max-width:190px;text-align:left;
+  transition:background .18s,border-color .18s,transform .18s,box-shadow .18s;
+}
+.deck-tab:hover{border-color:#CFC4AB}
+.deck-tab.on{
+  background:var(--card);border-color:#E5DCC9;transform:translateY(-2px);
+  box-shadow:0 -6px 16px -10px rgba(70,58,35,.3),0 2px 0 rgba(0,0,0,.02);
+}
+.deck-tab.on::before{
+  content:'';position:absolute;top:0;left:12px;right:12px;height:2px;
+  background:var(--red);opacity:.75;
+}
+.dt-name{
+  font-family:var(--serif-cn);font-weight:600;font-size:13.5px;letter-spacing:.02em;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--ink-soft);transition:color .18s;
+}
+.deck-tab.on .dt-name{color:var(--ink)}
+.dt-meta{
+  font-size:10.5px;color:#9A8F79;letter-spacing:.04em;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:100%;
+}
+.dt-meta b{color:var(--red);font-weight:500}
+.deck-tab.add{
+  border-style:dashed;background:none;color:#9A8F79;
+  flex-direction:row;align-items:center;justify-content:center;gap:7px;
+  padding:8px 16px;min-width:0;font-size:12.5px;letter-spacing:.05em;
+}
+.deck-tab.add:hover{border-color:var(--red);color:var(--red)}
+.deck-tab.add svg{width:12px;height:12px}
+
+/* ============ 首页 ============ */
+.home-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:60px;padding-top:24px;position:relative}
+#homeMain.swap{animation:swapIn .35s cubic-bezier(.22,.61,.36,1)}
+@keyframes swapIn{from{opacity:0;transform:translateY(10px)}}
+.deck-title{
+  font-family:var(--serif-cn);font-weight:700;
+  font-size:clamp(28px,4vw,40px);letter-spacing:.02em;line-height:1.25;
+}
+.deck-meta{color:var(--ink-soft);font-size:13.5px;margin-top:10px}
+.deck-meta b{color:var(--ink);font-weight:500}
+.schedule-note{font-size:12px;color:#9A8F79;margin-top:8px}
+.schedule-note i{font-style:normal;color:var(--blue)}
+.home-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:36px}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--ink);color:var(--paper);
+  padding:15px 28px;border-radius:3px;font-size:15px;font-weight:500;letter-spacing:.06em;
+  transition:background .25s,transform:.15s;
+}
+.btn-primary:hover{background:var(--red)}
+.btn-primary:active{transform:scale(.97)}
+.btn-primary svg{width:17px;height:17px}
+.btn-ghost{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid #B9AE96;border-radius:3px;padding:13px 20px;
+  font-size:13.5px;color:var(--ink-soft);letter-spacing:.04em;
+  transition:border-color .2s,color .2s,background .2s;
+}
+.btn-ghost:hover{border-color:var(--ink);color:var(--ink)}
+.btn-ghost svg{width:15px;height:15px}
+.stat-row{display:flex;gap:36px;margin:36px 0 24px;flex-wrap:wrap}
+.stat-item .num{font-family:var(--serif-en);font-weight:500;font-size:clamp(32px,4vw,42px);line-height:1}
+.stat-item .num.green{color:var(--green)}
+.stat-item .num.red{color:var(--red)}
+.stat-item .lbl{font-size:12px;letter-spacing:.18em;color:var(--ink-soft);margin-top:8px}
+.seg-bar{height:8px;border-radius:4px;overflow:hidden;background:var(--paper-deep);display:flex;margin-bottom:12px}
+.seg-bar i{display:block;height:100%;transition:width .6s cubic-bezier(.22,.61,.36,1)}
+.seg-green{background:var(--green)} .seg-red{background:var(--red)} .seg-gray{background:#CDC2A9}
+.seg-legend{display:flex;gap:22px;font-size:12px;color:var(--ink-soft);margin-bottom:26px;flex-wrap:wrap}
+.seg-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:7px;vertical-align:0}
+.log-line{font-size:12px;color:#9A8F79;letter-spacing:.04em}
+.minor-links{margin-top:26px;display:flex;gap:26px}
+.link-btn{font-size:12.5px;color:#9A8F79;border-bottom:1px dashed #B9AE96;padding-bottom:2px;transition:color .2s,border-color .2s}
+.link-btn:hover{color:var(--red);border-color:var(--red)}
+
+/* 首页右侧：卡堆 + 分组面板 */
+.home-right{display:flex;flex-direction:column;gap:26px}
+.card-stack{position:relative;height:150px;flex:none}
+.card-stack .deco{
+  position:absolute;width:158px;height:106px;background:var(--card);
+  border:1px solid var(--line);border-radius:4px;
+  box-shadow:0 2px 0 rgba(0,0,0,.03),0 14px 28px -14px rgba(70,58,35,.3);
+}
+.card-stack .deco::before{content:'';position:absolute;left:14px;right:14px;top:24px;height:2px;background:var(--red);opacity:.65}
+.card-stack .deco::after{
+  content:'';position:absolute;left:14px;right:14px;top:36px;bottom:12px;
+  background:repeating-linear-gradient(to bottom,transparent 0 18px,rgba(111,143,163,.16) 18px 19px);
+}
+.card-stack .d1{left:10%;top:14px;transform:rotate(-7deg)}
+.card-stack .d2{left:22%;top:30px;transform:rotate(4deg)}
+.card-stack .d3{left:15%;top:46px;transform:rotate(-2deg)}
+.card-stack .d3 span{
+  position:absolute;left:0;right:0;top:44px;text-align:center;
+  font-family:var(--serif-en);font-style:italic;font-size:17px;color:var(--ink-soft);
+}
+
+/* 分组面板 */
+.group-panel{border:1px solid var(--line);border-radius:5px;background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.group-head{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:13px 16px;border-bottom:1px solid var(--line);
+  background:rgba(239,231,214,.35);flex-wrap:wrap;
+}
+.group-head .t{font-size:11.5px;letter-spacing:.22em;color:var(--ink-soft)}
+.group-head .t b{font-family:var(--serif-en);font-size:15px;color:var(--ink);font-weight:500;letter-spacing:0}
+.head-ctrl{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.size-pills{display:flex;gap:5px;align-items:center}
+.size-pills .pl{font-size:11.5px;color:#9A8F79;letter-spacing:.1em;margin-right:3px}
+.order-pills{display:flex;gap:5px;align-items:center}
+.pill{
+  font-family:var(--serif-en);font-size:13px;min-width:32px;padding:4px 8px;
+  border:1px solid #C6BBA3;border-radius:2px;color:var(--ink-soft);transition:all .18s;
+}
+.pill:hover{border-color:var(--ink);color:var(--ink)}
+.pill.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.group-list{max-height:352px;overflow:auto}
+.group-row{
+  display:flex;align-items:center;gap:12px;width:100%;padding:11px 16px;
+  border-bottom:1px dashed #EBE2CE;text-align:left;transition:background .15s;
+}
+.group-row:hover{background:rgba(239,231,214,.55)}
+.group-row:last-child{border-bottom:none}
+.g-no{
+  width:26px;height:26px;border:1px solid #CFC4AB;border-radius:2px;
+  display:grid;place-items:center;font-family:var(--serif-en);font-size:13px;
+  color:var(--ink-soft);flex:none;transition:all .18s;
+}
+.group-row.rec .g-no{background:var(--red);border-color:var(--red);color:#FBF6EC}
+.g-mid{flex:1;min-width:0}
+.g-name{font-size:13px;color:var(--ink);display:block;line-height:1.4}
+.g-name small{color:#9A8F79;font-size:11.5px}
+.g-rec{
+  font-style:normal;font-size:10px;color:var(--red);border:1px solid #DBA899;
+  border-radius:2px;padding:0 5px;margin-left:8px;letter-spacing:.14em;vertical-align:1px;
+}
+.g-bar{height:3px;background:var(--paper-deep);border-radius:2px;margin-top:6px;overflow:hidden;display:block}
+.g-bar i{display:block;height:100%;background:var(--green);transition:width .5s}
+.g-state{font-size:11px;letter-spacing:.04em;flex:none;white-space:nowrap}
+.g-state.due{color:var(--red);font-weight:500}
+.g-state.done{color:var(--green)}
+.g-state.new,.g-state.prog{color:#9A8F79}
+.order-hint{
+  padding:9px 16px;font-size:11px;color:#9A8F79;letter-spacing:.03em;
+  border-top:1px dashed var(--line);background:rgba(239,231,214,.25);
+}
+
+/* 空状态 */
+.empty-hero{padding-top:76px;max-width:640px}
+.empty-hero h1{
+  font-family:var(--serif-cn);font-weight:700;
+  font-size:clamp(32px,5.4vw,50px);line-height:1.3;letter-spacing:.02em;
+}
+.empty-hero h1 em{font-style:normal;color:var(--red)}
+.empty-hero p{color:var(--ink-soft);margin:22px 0 40px;font-size:15px}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--ink);border-radius:3px;padding:13px 24px;
+  font-size:14px;font-weight:500;letter-spacing:.05em;
+  transition:background .2s,color .2s;
+}
+.btn-secondary:hover{background:var(--ink);color:var(--paper)}
+.btn-secondary svg{width:15px;height:15px}
+.empty-hint{margin-top:34px;font-size:12.5px;color:#9A8F79}
+.empty-hint code{
+  font-family:ui-monospace,monospace;font-size:12px;background:var(--paper-deep);
+  padding:2px 7px;border-radius:3px;color:var(--ink-soft);
+}
+
+/* ============ 导入视图 ============ */
+#importView{padding-top:44px;max-width:760px;margin:0 auto}
+.back-link{
+  display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft);
+  margin-bottom:34px;transition:color .2s;
+}
+.back-link:hover{color:var(--red)}
+.back-link svg{width:14px;height:14px}
+#importView h2{margin-bottom:8px}
+.import-sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:36px}
+.dropzone{
+  border:1.5px dashed #BCB097;border-radius:6px;background:rgba(255,253,247,.6);
+  padding:52px 30px;text-align:center;cursor:pointer;
+  transition:border-color .25s,background .25s,transform .25s;
+}
+.dropzone:hover,.dropzone.over{border-color:var(--red);background:var(--card)}
+.dropzone.over{transform:scale(1.012)}
+.dropzone svg{width:34px;height:34px;color:var(--red);margin-bottom:14px}
+.dropzone .dz-main{font-size:15px;font-weight:500}
+.dropzone .dz-hint{font-size:12.5px;color:var(--ink-soft);margin-top:8px}
+#importFile{display:none}
+
+#importConfig{margin-top:38px;display:none}
+#importConfig.show{display:block;animation:viewIn .4s both}
+.cfg-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:14px;margin-bottom:26px;
+}
+.cfg-item label{display:block;font-size:12px;letter-spacing:.14em;color:var(--ink-soft);margin-bottom:8px}
+.cfg-item select{
+  width:100%;font-family:inherit;font-size:13.5px;color:var(--ink);
+  background:var(--card);border:1px solid #C6BBA3;border-radius:3px;padding:9px 10px;
+}
+.cfg-item .chk{
+  display:flex;align-items:center;gap:9px;height:40px;
+  font-size:13.5px;color:var(--ink);border:1px solid #C6BBA3;border-radius:3px;
+  padding:0 12px;background:var(--card);cursor:pointer;user-select:none;
+}
+.cfg-item input[type=checkbox]{accent-color:var(--red);width:15px;height:15px}
+.preview-wrap{border:1px solid var(--line);border-radius:5px;overflow:auto;background:var(--card)}
+table.preview{width:100%;border-collapse:collapse;font-size:13.5px;min-width:520px}
+table.preview th{
+  text-align:left;font-weight:500;font-size:12px;letter-spacing:.1em;color:var(--ink-soft);
+  padding:11px 16px;border-bottom:1px solid var(--line);white-space:nowrap;background:rgba(239,231,214,.4);
+}
+table.preview th .role{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:2px;margin-left:8px;letter-spacing:.08em}
+.role-word{background:var(--red-soft);color:var(--red)}
+.role-mean{background:var(--green-soft);color:var(--green)}
+.role-ex{background:#E2E9EE;color:var(--blue)}
+table.preview td{padding:10px 16px;border-bottom:1px dashed #EBE2CE;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.preview tr:last-child td{border-bottom:none}
+table.preview .en{font-family:var(--serif-en);font-size:15px}
+.import-confirm{margin-top:26px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.import-note{font-size:12.5px;color:#9A8F79}
+.format-tip{margin-top:40px;font-size:12.5px;color:#9A8F79;border-top:1px dashed #D8CDB5;padding-top:20px}
+.format-tip code{font-family:ui-monospace,monospace;background:var(--paper-deep);padding:2px 7px;border-radius:3px}
+
+/* ============ 学习视图 ============ */
+#studyView{
+  max-width:900px;margin:0 auto;min-height:100vh;
+  display:flex;flex-direction:column;padding:22px 24px 40px;
+}
+.study-top{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.study-stat{font-size:13px;color:var(--ink-soft)}
+.study-stat b{font-family:var(--serif-en);font-size:17px;color:var(--ink);font-weight:500;padding:0 2px}
+.btn-back{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-soft);transition:color .2s}
+.btn-back:hover{color:var(--red)}
+.btn-back svg{width:14px;height:14px}
+.btn-end{
+  font-size:12.5px;color:var(--ink-soft);border:1px solid #C6BBA3;border-radius:3px;
+  padding:7px 14px;transition:all .2s;
+}
+.btn-end:hover{border-color:var(--ink);color:var(--ink)}
+.progress{height:3px;background:var(--paper-deep);border-radius:2px;margin:20px 0 6px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--green);width:0;transition:width .5s cubic-bezier(.22,.61,.36,1)}
+.progress-label{font-size:11.5px;letter-spacing:.18em;color:#9A8F79;text-align:center;margin-bottom:8px}
+
+.stage{flex:1;display:grid;place-items:center;padding:26px 0}
+
+/* —— 索引卡 —— */
+.card-wrap{
+  width:min(580px,94vw);perspective:1400px;position:relative;cursor:pointer;
+  transition:transform .38s cubic-bezier(.5,0,.8,.5),opacity .38s;
+}
+.card-wrap.fly-right{transform:translateX(64%) rotate(9deg);opacity:0}
+.card-wrap.fly-left{transform:translateX(-64%) rotate(-9deg);opacity:0}
+.card-wrap.enter{animation:cardIn .34s cubic-bezier(.22,.61,.36,1) both}
+@keyframes cardIn{from{transform:translateY(18px) scale(.985);opacity:0}}
+.card-inner{
+  position:relative;width:100%;min-height:min(400px,56vh);
+  transform-style:preserve-3d;
+  transition:transform .55s cubic-bezier(.3,.7,.3,1);
+}
+.card-wrap.flipped .card-inner{transform:rotateY(180deg)}
+.card-wrap.snap .card-inner{transition:none}
+.face{
+  position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:var(--card);border:1px solid #E5DCC9;border-radius:5px;
+  box-shadow:0 2px 0 rgba(0,0,0,.03),0 18px 40px -16px rgba(70,58,35,.32);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:64px 34px 40px;
+}
+.face.back{transform:rotateY(180deg)}
+.rule-red{position:absolute;left:26px;right:26px;top:52px;height:2px;background:var(--red);opacity:.7}
+.face .lines{
+  position:absolute;left:26px;right:26px;top:70px;bottom:20px;pointer-events:none;
+  background:repeating-linear-gradient(to bottom,transparent 0 39px,rgba(111,143,163,.15) 39px 40px);
+}
+.card-tag-label{
+  position:absolute;top:19px;left:26px;font-size:11px;letter-spacing:.18em;
+  color:var(--ink-soft);border:1px solid #CFC4AB;border-radius:2px;padding:2px 8px;
+}
+.card-tag-label.is-new{color:#9A8F79}
+.card-tag-label.is-learn{color:var(--red);border-color:#DBA899}
+.card-tag-label.is-master{color:var(--green);border-color:#A8BEB0}
+.card-tag-label.is-speed{color:var(--blue);border-color:#B7C6D0}
+.card-no{
+  position:absolute;top:21px;right:26px;font-family:var(--serif-en);font-style:italic;
+  font-size:14px;color:#9A8F79;
+}
+.card-word{
+  font-family:var(--serif-en);font-weight:500;
+  font-size:clamp(30px,7.5vw,52px);letter-spacing:.01em;
+  max-width:92%;word-break:break-word;text-align:center;line-height:1.2;
+  position:relative;z-index:1;
+}
+.card-hint{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-size:11.5px;letter-spacing:.24em;color:#B0A58C}
+.card-word-sm{
+  position:absolute;top:24px;left:0;right:0;text-align:center;
+  font-family:var(--serif-en);font-size:17px;color:var(--ink-soft);letter-spacing:.06em;
+  padding-top:34px;word-break:break-word;
+}
+.card-meaning{
+  font-family:var(--serif-cn);font-weight:600;
+  font-size:clamp(21px,5vw,30px);line-height:1.55;letter-spacing:.02em;
+  max-width:88%;word-break:break-word;text-align:center;position:relative;z-index:1;
+  overflow:auto;max-height:52%;
+}
+.card-example{
+  position:absolute;bottom:30px;left:44px;right:44px;
+  font-family:var(--serif-en);font-style:italic;font-size:15px;color:var(--ink-soft);
+  text-align:center;line-height:1.6;word-break:break-word;
+}
+.card-example::before{content:'';display:block;width:26px;height:1px;background:#CFC4AB;margin:0 auto 12px}
+
+/* —— 评分栏 —— */
+.grade-bar{
+  display:flex;gap:14px;justify-content:center;
+  opacity:.32;pointer-events:none;transform:translateY(8px);
+  transition:opacity .35s,transform .35s;
+}
+.grade-bar.ready{opacity:1;pointer-events:auto;transform:none}
+/* 速刷模式：隐藏中间档，只留 认识/不认识 */
+.grade-bar.speed .grade-mid{display:none}
+.grade-btn{
+  flex:1;max-width:172px;display:flex;align-items:center;justify-content:center;gap:9px;
+  border-radius:3px;padding:13px 10px;font-size:14.5px;font-weight:500;letter-spacing:.08em;
+  border:1px solid;transition:background .2s,color .2s,border-color .2s,transform .12s;
+}
+.grade-btn:active{transform:scale(.96)}
+.grade-btn kbd{
+  font-family:ui-monospace,monospace;font-size:10.5px;border:1px solid currentColor;
+  opacity:.55;border-radius:3px;padding:0 5px;line-height:1.7;
+}
+.grade-no{border-color:#D9A899;color:var(--red)}
+.grade-no:hover{background:var(--red);color:#FBF6EC;border-color:var(--red)}
+.grade-mid{border-color:#B9AE96;color:var(--ink-soft)}
+.grade-mid:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.grade-yes{border-color:#A8BEB0;color:var(--green)}
+.grade-yes:hover{background:var(--green);color:#FBF6EC;border-color:var(--green)}
+.kbd-hint{text-align:center;font-size:11.5px;color:#B0A58C;margin-top:18px;letter-spacing:.12em}
+
+/* ============ 完成视图 ============ */
+#doneView{padding-top:100px;text-align:center;max-width:640px;margin:0 auto}
+.done-mark{
+  width:56px;height:56px;margin:0 auto 30px;border:1.5px solid var(--green);border-radius:50%;
+  display:grid;place-items:center;color:var(--green);
+  animation:stampIn .5s cubic-bezier(.34,1.56,.64,1) both .15s;
+}
+.done-mark svg{width:26px;height:26px}
+@keyframes stampIn{from{transform:scale(.4) rotate(-14deg);opacity:0}}
+#doneView h2{font-family:var(--serif-cn);font-weight:700;font-size:clamp(30px,4.6vw,42px);letter-spacing:.04em}
+#doneView .done-sub{color:var(--ink-soft);margin:16px 0 52px}
+.done-stats{display:flex;justify-content:center;gap:58px;margin-bottom:58px;flex-wrap:wrap}
+.done-stats .num{font-family:var(--serif-en);font-size:46px;font-weight:500;line-height:1}
+.done-stats .num.red{color:var(--red)} .done-stats .num.green{color:var(--green)}
+.done-stats .lbl{font-size:12px;letter-spacing:.2em;color:var(--ink-soft);margin-top:10px}
+.done-actions{display:flex;justify-content:center;gap:16px;flex-wrap:wrap}
+
+/* ============ Toast / Modal ============ */
+#toast{
+  position:fixed;left:50%;bottom:38px;transform:translate(-50%,16px);
+  background:var(--ink);color:var(--paper);font-size:13.5px;letter-spacing:.04em;
+  padding:11px 24px;border-radius:3px;opacity:0;pointer-events:none;
+  transition:opacity .3s,transform .3s;z-index:1000;max-width:86vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#modalMask{
+  position:fixed;inset:0;background:rgba(32,26,15,.42);z-index:1001;
+  display:none;align-items:center;justify-content:center;padding:24px;
+  opacity:0;transition:opacity .25s;
+}
+#modalMask.show{display:flex;opacity:1}
+.modal{
+  background:var(--card);border-radius:5px;max-width:460px;width:100%;
+  padding:34px 32px 28px;position:relative;
+  box-shadow:0 24px 60px -20px rgba(50,40,20,.4);
+  transform:translateY(10px);transition:transform .25s;
+}
+#modalMask.show .modal{transform:none}
+.modal::before{content:'';position:absolute;left:28px;right:28px;top:19px;height:2px;background:var(--red);opacity:.6}
+.modal h3{font-family:var(--serif-cn);font-weight:700;font-size:19px;margin-bottom:10px;letter-spacing:.03em}
+.modal p{font-size:13.5px;color:var(--ink-soft);white-space:pre-line;line-height:1.8}
+.modal input[type=text]{
+  width:100%;margin-top:16px;font-family:var(--sans);font-size:14px;color:var(--ink);
+  background:var(--paper);border:1px solid #C6BBA3;border-radius:3px;padding:10px 12px;
+}
+.modal input[type=text]:focus{outline:2px solid var(--red);outline-offset:1px;border-color:var(--red)}
+.modal-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}
+.btn-modal-cancel{font-size:13.5px;color:var(--ink-soft);padding:9px 16px;border-radius:3px;transition:color .2s}
+.btn-modal-cancel:hover{color:var(--ink)}
+.btn-modal-ok{
+  background:var(--ink);color:var(--paper);font-size:13.5px;letter-spacing:.05em;
+  padding:9px 20px;border-radius:3px;transition:background .2s;
+}
+.btn-modal-ok:hover{background:var(--red)}
+.btn-modal-ok.danger{background:var(--red)}
+.btn-modal-ok.danger:hover{background:#A32F1A}
+
+/* ============ 响应式 ============ */
+@media (max-width:860px){
+  .home-grid{grid-template-columns:1fr;gap:44px;padding-top:20px}
+  .card-stack{height:140px}
+  .stat-row{gap:28px;margin:30px 0 20px}
+  .group-list{max-height:300px}
+}
+@media (max-width:560px){
+  .topbar-inner,main{padding-left:20px;padding-right:20px}
+  .grade-bar{gap:9px}
+  .grade-btn{padding:12px 4px;font-size:13px;letter-spacing:.03em}
+  .grade-btn kbd{display:none}
+  .done-stats{gap:34px}
+  .card-example{left:26px;right:26px;bottom:24px}
+  .seg-legend{gap:14px}
+  .deck-strip{padding-top:22px;gap:6px}
+  .deck-tab{min-width:92px;padding:7px 12px 9px}
+  .head-ctrl{gap:12px}
+  .btn-install,.btn-import-top{padding:7px 12px;font-size:12.5px}
+}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<header id="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="seal">拾</span>
+      <span class="brand-name">拾词</span>
+      <span class="brand-sub">FLASHCARDS</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn-install" id="btnInstall" style="display:none" title="安装为桌面 / 主屏应用，独立窗口运行，无浏览器菜单栏">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12.5" rx="1.5"/><path d="M12 7.2v5.2m0 0L9.9 10.3m2.1 2.1l2.1-2.1"/><path d="M9.5 20.5h5M12 16.5v4"/></svg>
+        安装
+        <span class="dot"></span>
+      </button>
+      <button class="btn-import-top" id="btnGoImport">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        导入 CSV
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ 首页 ============ -->
+  <section class="view" id="homeView">
+    <!-- 牌组分隔签 -->
+    <div class="deck-strip" id="deckStrip" style="display:none"></div>
+
+    <!-- 有牌组 -->
+    <div class="home-grid" id="homeMain" style="display:none">
+      <div class="home-left">
+        <p class="eyebrow" id="homeEyebrow">当前牌组</p>
+        <h1 class="deck-title" id="deckTitle"></h1>
+        <p class="deck-meta" id="deckMeta"></p>
+        <p class="schedule-note">按<i>艾宾浩斯遗忘曲线</i>安排复习：5分钟 · 30分钟 · 12小时 · 1 / 2 / 4 / 7 / 15 / 30 天</p>
+        <div class="home-actions">
+          <button class="btn-primary" id="btnPrimary"></button>
+          <button class="btn-ghost" id="btnSecondary" style="display:none"></button>
+          <button class="btn-ghost" id="btnSpeed" title="快速分拣：认识的词直接归为熟悉并移出复习计划；不认识的直接跳过">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            速刷模式
+          </button>
+        </div>
+        <div class="stat-row">
+          <div class="stat-item"><div class="num red" id="numDue">0</div><div class="lbl">已到期</div></div>
+          <div class="stat-item"><div class="num" id="numNew">0</div><div class="lbl">待学习</div></div>
+          <div class="stat-item"><div class="num" id="numLearning">0</div><div class="lbl">复习周期中</div></div>
+          <div class="stat-item"><div class="num green" id="numMastered">0</div><div class="lbl">已掌握</div></div>
+        </div>
+        <div class="seg-bar" id="segBar"><i class="seg-gray"></i><i class="seg-red"></i><i class="seg-green"></i></div>
+        <div class="seg-legend">
+          <span><i style="background:#CDC2A9"></i>待学习</span>
+          <span><i style="background:var(--red)"></i>复习周期中</span>
+          <span><i style="background:var(--green)"></i>已掌握</span>
+        </div>
+        <p class="log-line" id="logLine"></p>
+        <div class="minor-links">
+          <button class="link-btn" id="btnRename">重命名</button>
+          <button class="link-btn" id="btnReset">重置进度</button>
+          <button class="link-btn" id="btnDeleteDeck">删除牌组</button>
+        </div>
+      </div>
+      <div class="home-right">
+        <div class="card-stack">
+          <div class="deco d1"></div>
+          <div class="deco d2"></div>
+          <div class="deco d3"><span id="nextWord"></span></div>
+        </div>
+        <div class="group-panel">
+          <div class="group-head">
+            <span class="t">分组 · 共 <b id="groupCount">0</b> 组</span>
+            <div class="head-ctrl">
+              <div class="size-pills" id="sizePills">
+                <span class="pl">每组</span>
+                <button class="pill" data-size="10">10</button>
+                <button class="pill" data-size="15">15</button>
+                <button class="pill" data-size="20">20</button>
+              </div>
+              <div class="order-pills" id="orderPills">
+                <button class="pill" data-order="seq" title="按词库导入顺序分组并依次背诵">顺序</button>
+                <button class="pill" data-order="rand" title="整本词库随机重排后再切分各组，分组固定">乱序</button>
+              </div>
+            </div>
+          </div>
+          <div class="group-list" id="groupList"></div>
+          <div class="order-hint" id="orderHint"></div>
+        </div>
+      </div>
+    </div>
+    <!-- 空状态 -->
+    <div class="empty-hero" id="homeEmpty" style="display:none">
+      <p class="eyebrow">FLASHCARD DECKS</p>
+      <h1>背单词，<br>像翻一<em>叠卡片</em>。</h1>
+      <p>导入一份 CSV 词库，按每组 10 / 15 / 20 词分小组学习；可按词库原序背诵，也可整本乱序后自动重新分组；复习节奏由艾宾浩斯遗忘曲线自动安排；已认识的旧词可用速刷模式快速分拣出计划。多个牌组进度互不干扰，全部保存在本机。</p>
+      <div class="home-actions">
+        <button class="btn-primary" id="btnGoImportEmpty">
+          导入 CSV 词库
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+        </button>
+        <button class="btn-secondary" id="btnSample">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h10M4 19h16"/></svg>
+          载入示例词库
+        </button>
+      </div>
+      <p class="empty-hint">文件格式：一行一词，如 <code>word,meaning,example</code>，自动识别列与分隔符。<br>保存为 .html 双击即可使用；经 http 访问时，可点顶栏「安装」添加到桌面，获得无浏览器栏的纯净体验。</p>
+    </div>
+  </section>
+
+  <!-- ============ 导入视图 ============ -->
+  <section class="view" id="importView">
+    <button class="back-link" id="btnBackHome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4m0 0l6-6m-6 6l6 6"/></svg>
+      返回首页
+    </button>
+    <h2 class="serif">导入 CSV 词库</h2>
+    <p class="import-sub">支持逗号 / 分号 / 制表符分隔，自动识别表头、单词列与释义列，导入前可手动调整。导入后将创建一个新牌组，不影响现有牌组。</p>
+    <div class="dropzone" id="dropzone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4m0 0l-4 4m4-4l4 4"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+      <div class="dz-main">拖拽 CSV 文件到此处，或点击选择</div>
+      <div class="dz-hint">建议 UTF-8 编码 · 也可以直接打开示例词库体验</div>
+    </div>
+    <input type="file" id="importFile" accept=".csv,.txt,.tsv">
+
+    <div id="importConfig">
+      <div class="cfg-grid">
+        <div class="cfg-item">
+          <label>首行为表头</label>
+          <label class="chk"><input type="checkbox" id="cfgHeader"> 将第一行作为列名</label>
+        </div>
+        <div class="cfg-item">
+          <label>单词列</label>
+          <select id="cfgWord"></select>
+        </div>
+        <div class="cfg-item">
+          <label>释义列</label>
+          <select id="cfgMean"></select>
+        </div>
+        <div class="cfg-item">
+          <label>例句列（可选）</label>
+          <select id="cfgEx"></select>
+        </div>
+        <div class="cfg-item">
+          <label>每组词数</label>
+          <select id="cfgGroupSize">
+            <option value="10">每组 10 词</option>
+            <option value="15">每组 15 词</option>
+            <option value="20">每组 20 词</option>
+          </select>
+        </div>
+        <div class="cfg-item">
+          <label>学习顺序</label>
+          <select id="cfgOrder">
+            <option value="seq">按词库顺序</option>
+            <option value="rand">整本乱序后分组</option>
+          </select>
+        </div>
+      </div>
+      <div class="preview-wrap">
+        <table class="preview">
+          <thead id="previewHead"></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+      <div class="import-confirm">
+        <button class="btn-primary" id="btnDoImport">导入词条</button>
+        <span class="import-note" id="importNote"></span>
+      </div>
+    </div>
+
+    <p class="format-tip">格式说明：一行一个词条，例如 <code>ubiquitous,无处不在的,Smartphones are everywhere.</code>。重复单词自动去重；选择"整本乱序"会先随机重排全部词条、再按组大小切分，之后分组固定，随时可在首页切换。</p>
+  </section>
+
+  <!-- ============ 学习视图 ============ -->
+  <section class="view" id="studyView">
+    <div class="study-top">
+      <button class="btn-back" id="btnExit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H4m0 0l6-6m-6 6l6 6"/></svg>
+        退出
+      </button>
+      <div class="study-stat" id="studyStat"></div>
+      <button class="btn-end" id="btnEnd">结束本轮</button>
+    </div>
+    <div class="progress"><i id="progressBar"></i></div>
+    <div class="progress-label" id="progressLabel"></div>
+
+    <div class="stage">
+      <div class="card-wrap" id="cardWrap" title="点击翻转">
+        <div class="card-inner">
+          <div class="face front">
+            <div class="rule-red"></div>
+            <div class="lines"></div>
+            <span class="card-tag-label" id="cardTag"></span>
+            <span class="card-no" id="cardNo"></span>
+            <div class="card-word" id="cardWord"></div>
+            <div class="card-hint">点击卡片或按 空格 翻转</div>
+          </div>
+          <div class="face back">
+            <div class="rule-red"></div>
+            <div class="card-word-sm" id="cardWordSm"></div>
+            <div class="card-meaning" id="cardMeaning"></div>
+            <div class="card-example" id="cardExample"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grade-bar" id="gradeBar">
+      <button class="grade-btn grade-no" data-g="0">不认识 <kbd>1</kbd></button>
+      <button class="grade-btn grade-mid" data-g="1">模糊 <kbd>2</kbd></button>
+      <button class="grade-btn grade-yes" data-g="2">认识 <kbd>3</kbd></button>
+    </div>
+    <p class="kbd-hint" id="kbdHint">空格 翻转 &nbsp;·&nbsp; 1 / 2 / 3 评分 &nbsp;·&nbsp; E 结束本轮</p>
+  </section>
+
+  <!-- ============ 完成视图 ============ -->
+  <section class="view" id="doneView">
+    <div class="done-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <h2 id="doneTitle">本轮完成</h2>
+    <p class="done-sub" id="doneSub"></p>
+    <div class="done-stats">
+      <div><div class="num" id="doneNew">0</div><div class="lbl" id="doneLblNew">新学单词</div></div>
+      <div><div class="num red" id="doneReviews">0</div><div class="lbl" id="doneLblReviews">复习次数</div></div>
+      <div><div class="num green" id="doneTime">0</div><div class="lbl" id="doneLblTime">用时（分钟）</div></div>
+    </div>
+    <div class="done-actions">
+      <button class="btn-primary" id="btnAgain"></button>
+      <button class="btn-ghost" id="btnDoneHome">返回首页</button>
+    </div>
+  </section>
+</main>
+
+<!-- Toast 与确认/输入弹窗 -->
+<div id="toast"></div>
+<div id="modalMask">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <p id="modalDesc"></p>
+    <input type="text" id="modalInput" style="display:none" maxlength="40">
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" id="modalCancel">取消</button>
+      <button class="btn-modal-ok" id="modalOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   拾词 · 闪卡背单词（v7 · PWA 可安装应用）
+   · 多牌组：{ version:3, activeDeckId, decks:[{id,name,importedAt,
+     groupSize, order:'seq'|'rand', cards[], log}] }，进度互不干扰
+   · 艾宾浩斯调度：stage/due，九档周期
+   · 分组：按牌组"当前序列"切分（乱序=整本重排一次后切组）
+   · 速刷模式：认识→归熟出计划；不认识→跳过不安排复习
+   · PWA：运行时生成品牌图标与 manifest，支持安装到
+     桌面/主屏，独立窗口运行（无浏览器菜单栏）
+   数据保存在 localStorage，键名 SHICI_FLASHCARDS_V1
+   ========================================================= */
+
+/* ---------- 工具 ---------- */
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const uid = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* 通用弹窗：无 input → 确认框（返回 true/false）；
+   有 defaultValue → 输入框（返回字符串，取消返回 null） */
+function openModal({ title, desc, okText = '确认', danger = false, defaultValue = null, placeholder = '' }) {
+  return new Promise(resolve => {
+    const mask = $('#modalMask');
+    $('#modalTitle').textContent = title;
+    $('#modalDesc').textContent = desc;
+    const ok = $('#modalOk');
+    ok.textContent = okText;
+    ok.classList.toggle('danger', danger);
+    const inp = $('#modalInput');
+    const withInput = defaultValue !== null;
+    inp.style.display = withInput ? '' : 'none';
+    if (withInput) { inp.value = defaultValue; inp.placeholder = placeholder; }
+    mask.classList.add('show');
+    if (withInput) setTimeout(() => { inp.focus(); inp.select(); }, 60);
+
+    const finish = val => {
+      mask.classList.remove('show');
+      ok.onclick = null; $('#modalCancel').onclick = null; inp.onkeydown = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    };
+    const submit = () => {
+      if (!withInput) return finish(true);
+      const v = inp.value.trim();
+      if (!v) { toast('名称不能为空'); inp.focus(); return; }
+      finish(v);
+    };
+    const onKey = e => {
+      if (e.key === 'Escape') { e.preventDefault(); finish(withInput ? null : false); }
+    };
+    document.addEventListener('keydown', onKey);
+    ok.onclick = submit;
+    $('#modalCancel').onclick = () => finish(withInput ? null : false);
+    inp.onkeydown = e => {
+      if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); submit(); }
+    };
+  });
+}
+const askConfirm = o => openModal(o);
+const askPrompt  = o => openModal({ ...o, defaultValue: o.value ?? '' });
+
+/* ---------- 艾宾浩斯调度核心 ---------- */
+/* 经典艾宾浩斯记忆周期：5分 → 30分 → 12时 → 1天 → 2天 → 4天 → 7天 → 15天 → 30天
+   stage 为周期索引：-1 表示未学过的新词；0~8 对应上表。
+   间隔 ≥ 15 天（stage ≥ 7）视为"已掌握"。 */
+const EB = [
+  5 * 60e3,        // 5 分钟
+  30 * 60e3,       // 30 分钟
+  12 * 3600e3,     // 12 小时
+  86400e3,         // 1 天
+  2 * 86400e3,     // 2 天
+  4 * 86400e3,     // 4 天
+  7 * 86400e3,     // 7 天
+  15 * 86400e3,    // 15 天
+  30 * 86400e3,    // 30 天
+];
+const EB_LABEL = ['5分钟','30分钟','12小时','1天','2天','4天','7天','15天','30天'];
+const MASTER_STAGE = 7;
+
+const isMastered = c => c.stage >= MASTER_STAGE;
+const isDue = (c, now = Date.now()) => c.stage >= 0 && c.due <= now;
+
+function fmtDue(ts) {
+  const d = ts - Date.now();
+  if (d <= 0) return '已到期';
+  if (d < 60e3) return '1 分钟内';
+  if (d < 3600e3) return `${Math.ceil(d / 60e3)} 分钟后`;
+  if (d < 86400e3) return `${Math.round(d / 3600e3)} 小时后`;
+  return `${Math.round(d / 86400e3)} 天后`;
+}
+
+/* ---------- 持久化（多牌组结构） ---------- */
+const STORAGE_KEY = 'SHICI_FLASHCARDS_V1';
+
+function defaultState() {
+  return { version: 3, activeDeckId: '', decks: [] };
+}
+
+/* 旧版单牌组数据（v1 连对计数 / v2 调度版）迁移为多牌组结构 */
+function migrateOld(s) {
+  let cards = Array.isArray(s.cards) ? s.cards : [];
+  const now = Date.now();
+  const scheduled = cards.length && typeof cards[0].stage === 'number';
+  if (!scheduled) {
+    cards = cards.map(c => {
+      let stage, due;
+      if (c.status === 'mastered')      { stage = 8; due = now + EB[8]; }
+      else if (c.status === 'learning') { stage = 1; due = now; }
+      else                              { stage = -1; due = 0; }
+      return { word: c.word, meaning: c.meaning, example: c.example, group: 0,
+               reps: (c.correct || 0) + (c.wrong || 0), lapses: c.wrong || 0, stage, due };
+    });
+  }
+  if (!cards.length) return defaultState();
+  const size = s.groupSize || 10;
+  const order = s.order === 'rand' ? 'rand' : 'seq';
+  if (order === 'rand') shuffle(cards);               // 尊重旧设置：整本重排后再分组
+  cards.forEach((c, i) => { c.orig = i; c.group = Math.floor(i / size); });
+  const deck = {
+    id: uid(),
+    name: s.deckName || '导入词库',
+    importedAt: s.importedAt || now,
+    groupSize: size,
+    order,
+    cards,
+    log: Object.assign({ days: [], reviews: 0 }, s.log)
+  };
+  return { version: 3, activeDeckId: deck.id, decks: [deck] };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const s = JSON.parse(raw);
+    if (s && s.version === 3 && Array.isArray(s.decks)) {
+      s.decks.forEach(d => {
+        d.cards = d.cards || [];
+        d.log = Object.assign({ days: [], reviews: 0 }, d.log);
+        d.groupSize = d.groupSize || 10;
+        d.order = d.order === 'rand' ? 'rand' : 'seq';
+        // 兼容缺少 orig 的旧数据：以当前数组位置作为原始序
+        d.cards.forEach((c, i) => { if (typeof c.orig !== 'number') c.orig = i; });
+      });
+      if (!s.decks.some(d => d.id === s.activeDeckId))
+        s.activeDeckId = s.decks[0] ? s.decks[0].id : '';
+      return s;
+    }
+    return migrateOld(s || {});
+  } catch { return defaultState(); }
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch { toast('保存失败：本地存储空间不足'); }
+}
+
+let state = loadState();
+const activeDeck = () => state.decks.find(d => d.id === state.activeDeckId) || null;
+
+/* ---------- 序列与分组 ----------
+   牌组的"当前序列"即 cards 数组顺序：
+   · 顺序：数组按 orig（导入序）排列；
+   · 乱序：数组被整体随机重排一次并持久化 —— 分组按重排后的序列切，
+     每组是整本词库的随机切片，且刷新后不变。 */
+function applyOrder(dk, order) {
+  if (order === 'rand') {
+    shuffle(dk.cards);                                   // 整本洗牌
+  } else {
+    dk.cards.sort((a, b) => a.orig - b.orig);            // 恢复导入原序
+  }
+  dk.order = order;
+  dk.cards.forEach((c, i) => c.group = Math.floor(i / dk.groupSize));  // 按新序列重新切组
+}
+
+const groupCount = dk => dk.cards.length
+  ? Math.floor((dk.cards.length - 1) / dk.groupSize) + 1 : 0;
+const groupIdxs = (dk, g) => dk.cards.reduce((a, c, i) => (c.group === g && a.push(i), a), []);
+
+function regroup(dk, size) {
+  dk.cards.forEach((c, i) => c.group = Math.floor(i / size));
+  dk.groupSize = size;
+}
+
+/* ---------- 内置示例词库 ---------- */
+const SAMPLE_DECK = [
+  ['ubiquitous','无处不在的，普遍存在的','Smartphones have become ubiquitous in daily life.'],
+  ['ephemeral','短暂的，转瞬即逝的','Fame on the internet is often ephemeral.'],
+  ['meticulous','一丝不苟的，极其细致的','She kept meticulous notes of every experiment.'],
+  ['pragmatic','务实的，注重实效的','We need a pragmatic approach to this problem.'],
+  ['ambiguous','模棱两可的，有歧义的','His reply was deliberately ambiguous.'],
+  ['benevolent','仁慈的，与人为善的','A benevolent smile spread across her face.'],
+  ['candid','坦率的，直言不讳的','To be candid, I do not like the plan.'],
+  ['diligent','勤奋的，孜孜不倦的','He is a diligent student of history.'],
+  ['eloquent','雄辩的，有说服力的','She made an eloquent plea for tolerance.'],
+  ['feasible','可行的，行得通的','Is such a timetable really feasible?'],
+  ['gregarious','爱交际的，合群的','He was a popular, gregarious man.'],
+  ['impeccable','无可挑剔的，完美的','Her taste in music is impeccable.'],
+  ['inherent','固有的，内在的','The desire to learn is inherent in children.'],
+  ['lucidity','清晰，明了','The book is admired for its lucidity.'],
+  ['novel','新颖的，新奇的','She proposed a novel solution to an old problem.'],
+  ['obsolete','过时的，被淘汰的','Typewriters have been made obsolete by computers.'],
+  ['plausible','貌似有理的，貌似可信的','His explanation sounds plausible enough.'],
+  ['profound','深刻的，意义深远的','The war had a profound effect on the country.'],
+  ['resilient','有韧性的，能快速恢复的','Children are often remarkably resilient.'],
+  ['scrutinize','仔细审查，细看','The contract was scrutinized by lawyers.'],
+  ['tenacious','顽强的，坚持不懈的','She is tenacious in pursuit of her goals.'],
+  ['versatile','多才多艺的，用途广泛的','Eggs are a versatile ingredient.'],
+  ['vivid','生动的，鲜明的，逼真的','The novel gives a vivid picture of rural life.'],
+  ['zealous','热情的，积极进取的','He was a zealous reformer.'],
+];
+
+/* ---------- CSV 解析（支持引号转义与多分隔符） ---------- */
+function detectDelimiter(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
+  const counts = { ',': 0, ';': 0, '\t': 0 };
+  lines.forEach(l => { for (const ch of l) if (ch in counts) counts[ch]++; });
+  let best = ',', max = 0;
+  for (const [d, n] of Object.entries(counts)) if (n > max) { max = n; best = d; }
+  return max > 0 ? best : ',';
+}
+
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, '');
+  const delim = detectDelimiter(text);
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQ = false;
+      } else field += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === delim) { row.push(field); field = ''; }
+      else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (ch !== '\r') field += ch;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+
+function autoDetectColumns(rows, hasHeader) {
+  const body = hasHeader ? rows.slice(1) : rows;
+  const colCount = Math.max(...rows.slice(0, 20).map(r => r.length), 1);
+  const scores = [];
+  for (let c = 0; c < colCount; c++) {
+    let en = 0, cjk = 0, n = 0;
+    body.slice(0, 30).forEach(r => {
+      const v = (r[c] || '').trim();
+      if (!v) return;
+      n++;
+      if (/[a-zA-Z]/.test(v)) en++;
+      if (/[\u4e00-\u9fff]/.test(v)) cjk++;
+    });
+    scores.push({ en: n ? en / n : 0, cjk: n ? cjk / n : 0, n });
+  }
+  let wordCol = 0;
+  scores.forEach((s, i) => { if (s.en > 0.45 && s.en > scores[wordCol].en) wordCol = i; });
+  let meanCol = -1, bestCjk = 0.15;
+  scores.forEach((s, i) => { if (i !== wordCol && s.cjk > bestCjk) { bestCjk = s.cjk; meanCol = i; } });
+  if (meanCol === -1) meanCol = wordCol === 0 ? Math.min(1, colCount - 1) : 0;
+
+  let exCol = -1;
+  if (hasHeader) {
+    rows[0].forEach((h, i) => {
+      if (i !== wordCol && i !== meanCol && /exam|sentence|例句|例|句子/i.test(h)) exCol = i;
+    });
+  }
+  if (exCol === -1) {
+    let best = null;
+    scores.forEach((s, i) => {
+      if (i === wordCol || i === meanCol) return;
+      const avgLen = body.slice(0, 20).reduce((a, r) => a + (r[i] || '').length, 0) / Math.max(body.length, 1);
+      if (s.en > 0.5 && avgLen > 14 && (!best || avgLen > best.len)) best = { i, len: avgLen };
+    });
+    if (best) exCol = best.i;
+  }
+  return { wordCol, meanCol, exCol };
+}
+
+function guessHeader(rows) {
+  if (rows.length < 2) return false;
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  const kw = /^(word|term|english|vocab|单词|词语|英文|词汇|meaning|definition|translation|中文|释义|翻译|example|sentence|例句)/;
+  return head.some(h => kw.test(h));
+}
+
+/* ---------- 导入流程 ---------- */
+let imp = null;
+
+function handleFile(file) {
+  if (!file) return;
+  if (!/\.(csv|txt|tsv)$/i.test(file.name)) { toast('请选择 .csv / .txt / .tsv 文件'); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = String(reader.result);
+    if ((text.match(/\uFFFD/g) || []).length > text.length * 0.005)
+      toast('检测到部分乱码，文件可能不是 UTF-8 编码，导入结果可能异常');
+    processCSVText(text, file.name.replace(/\.[^.]+$/, ''));
+  };
+  reader.onerror = () => toast('文件读取失败，请重试');
+  reader.readAsText(file, 'UTF-8');
+}
+
+function processCSVText(text, fileName) {
+  const rows = parseCSV(text);
+  if (rows.length < 1) { toast('未解析到有效内容，请检查文件格式'); return; }
+  const hasHeader = guessHeader(rows);
+  const { wordCol, meanCol, exCol } = autoDetectColumns(rows, hasHeader);
+  imp = { rows, fileName, hasHeader, wordCol, meanCol, exCol };
+  buildConfigUI();
+}
+
+function dataRows() { return imp.hasHeader ? imp.rows.slice(1) : imp.rows; }
+
+function fillSelect(sel, cols, chosen) {
+  sel.innerHTML = '';
+  cols.forEach((name, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = `第 ${i + 1} 列 · ${name}`;
+    sel.appendChild(o);
+  });
+  sel.value = (chosen === -1 || chosen >= cols.length) ? 0 : chosen;
+}
+function fillExSelect(sel, cols, chosen) {
+  sel.innerHTML = '<option value="-1">不使用</option>';
+  cols.forEach((name, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = `第 ${i + 1} 列 · ${name}`;
+    sel.appendChild(o);
+  });
+  sel.value = (chosen >= 0 && chosen < cols.length) ? chosen : '-1';
+}
+
+function buildConfigUI() {
+  const colCount = Math.max(...imp.rows.slice(0, 20).map(r => r.length));
+  const cols = [];
+  for (let i = 0; i < colCount; i++) {
+    const sample = (dataRows()[0] && dataRows()[0][i] || imp.rows[0][i] || '').trim().slice(0, 12);
+    cols.push(sample || '（空列）');
+  }
+  fillSelect($('#cfgWord'), cols, imp.wordCol);
+  fillSelect($('#cfgMean'), cols, imp.meanCol);
+  fillExSelect($('#cfgEx'), cols, imp.exCol);
+  $('#cfgHeader').checked = imp.hasHeader;
+  $('#importConfig').classList.add('show');
+  renderPreview();
+}
+
+function readConfig() {
+  imp.hasHeader = $('#cfgHeader').checked;
+  imp.wordCol = +$('#cfgWord').value;
+  imp.meanCol = +$('#cfgMean').value;
+  imp.exCol = +$('#cfgEx').value;
+  if (imp.meanCol === imp.wordCol) {
+    const n = Math.max(...imp.rows.slice(0, 20).map(r => r.length));
+    imp.meanCol = imp.wordCol === 0 ? Math.min(1, n - 1) : 0;
+    fillSelect($('#cfgMean'), [...$('#cfgMean').options].map(o => o.textContent), imp.meanCol);
+  }
+  if (imp.exCol === imp.wordCol || imp.exCol === imp.meanCol) {
+    imp.exCol = -1; $('#cfgEx').value = '-1';
+  }
+}
+
+function renderPreview() {
+  readConfig();
+  const head = $('#previewHead'), body = $('#previewBody');
+  const colCount = Math.max(...imp.rows.slice(0, 20).map(r => r.length));
+  const roles = { [imp.wordCol]: 'word', [imp.meanCol]: 'mean' };
+  if (imp.exCol >= 0) roles[imp.exCol] = 'ex';
+  let h = '<tr>';
+  for (let i = 0; i < colCount; i++) {
+    const r = roles[i];
+    const badge = r === 'word' ? '<span class="role role-word">单词</span>'
+      : r === 'mean' ? '<span class="role role-mean">释义</span>'
+      : r === 'ex' ? '<span class="role role-ex">例句</span>' : '';
+    h += `<th>列 ${i + 1}${badge}</th>`;
+  }
+  h += '</tr>';
+  head.innerHTML = h;
+  body.innerHTML = dataRows().slice(0, 6).map(r => {
+    let t = '<tr>';
+    for (let i = 0; i < colCount; i++) {
+      const isEn = i === imp.wordCol || i === imp.exCol;
+      t += `<td class="${isEn ? 'en' : ''}" title="${esc(r[i] || '')}">${esc((r[i] || '').trim())}</td>`;
+    }
+    return t + '</tr>';
+  }).join('');
+
+  const seen = new Set(); let valid = 0;
+  dataRows().forEach(r => {
+    const w = (r[imp.wordCol] || '').trim();
+    if (w && !seen.has(w.toLowerCase())) { seen.add(w.toLowerCase()); valid++; }
+  });
+  const gs = +$('#cfgGroupSize').value;
+  const groups = valid ? Math.floor((valid - 1) / gs) + 1 : 0;
+  $('#btnDoImport').innerHTML = `导入 ${valid} 条词条`;
+  $('#importNote').textContent =
+    `将创建新牌组「${imp.fileName}」· 分为 ${groups} 组 · ` +
+    ($('#cfgOrder').value === 'rand' ? '整本乱序后分组' : '按词库顺序') +
+    (state.decks.length ? ` · 现有 ${state.decks.length} 个牌组不受影响` : '');
+}
+
+/* 导入即创建新牌组：记录原始序 orig；若选乱序，先整本洗牌、再按序列切组 */
+function doImport() {
+  readConfig();
+  const seen = new Set(); const cards = []; let dup = 0, skipped = 0;
+  dataRows().forEach(r => {
+    const w = (r[imp.wordCol] || '').trim();
+    const m = (r[imp.meanCol] !== undefined ? r[imp.meanCol] : '').trim();
+    const ex = imp.exCol >= 0 ? (r[imp.exCol] || '').trim() : '';
+    if (!w) { skipped++; return; }
+    const key = w.toLowerCase();
+    if (seen.has(key)) { dup++; return; }
+    seen.add(key);
+    cards.push({ word: w, meaning: m || '（暂无释义）', example: ex,
+                 orig: 0, group: 0, reps: 0, lapses: 0, stage: -1, due: 0 });
+  });
+  if (!cards.length) { toast('没有可用词条：单词列可能选错了'); return; }
+
+  const size = +$('#cfgGroupSize').value || 10;
+  const order = $('#cfgOrder').value === 'rand' ? 'rand' : 'seq';
+  cards.forEach((c, i) => c.orig = i);            // 记录导入原序
+  if (order === 'rand') shuffle(cards);           // 整本乱序：先洗牌
+  cards.forEach((c, i) => c.group = Math.floor(i / size));  // 再按新序列切组
+  const deck = {
+    id: uid(),
+    name: (imp.fileName || '未命名牌组').slice(0, 40),
+    importedAt: Date.now(),
+    groupSize: size,
+    order,
+    cards,
+    log: { days: [], reviews: 0 }
+  };
+  state.decks.push(deck);
+  state.activeDeckId = deck.id;
+  saveState();
+  imp = null;
+  $('#importConfig').classList.remove('show');
+  showView('home'); renderHome(true);
+  toast(`已创建牌组「${deck.name}」· ${cards.length} 词 · ${groupCount(deck)} 组` +
+        (order === 'rand' ? '（整本乱序后分组）' : '') + (dup ? `（去重 ${dup} 条）` : ''));
+}
+
+function loadSample() {
+  const cards = SAMPLE_DECK.map(([w, m, ex]) =>
+    ({ word: w, meaning: m, example: ex, orig: 0, group: 0, reps: 0, lapses: 0, stage: -1, due: 0 }));
+  cards.forEach((c, i) => c.orig = i);
+  const deck = {
+    id: uid(),
+    name: '精选高频词汇',
+    importedAt: Date.now(),
+    groupSize: 10,
+    order: 'seq',
+    cards,
+    log: { days: [], reviews: 0 }
+  };
+  regroup(deck, 10);
+  state.decks.push(deck);
+  state.activeDeckId = deck.id;
+  saveState();
+  showView('home'); renderHome(true);
+  toast(`已创建牌组「${deck.name}」· ${deck.cards.length} 词 · ${groupCount(deck)} 组`);
+}
+
+/* ---------- 视图管理 ---------- */
+let currentView = 'home';
+function showView(name) {
+  currentView = name;
+  $$('.view').forEach(v => v.classList.remove('active'));
+  $('#' + name + 'View').classList.add('active');
+  document.body.classList.toggle('view-study', name === 'study');
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 学习行动决策（基于当前牌组） ---------- */
+function primaryAction() {
+  const dk = activeDeck();
+  if (!dk || !dk.cards.length) return { mode: 'all', group: -1, label: '导入词库' };
+  const now = Date.now();
+  const dueCnt = dk.cards.filter(c => isDue(c, now)).length;
+  if (dueCnt > 0) return { mode: 'due', group: -1, label: `复习到期 · ${dueCnt} 词` };
+  const gc = groupCount(dk);
+  for (let g = 0; g < gc; g++) {
+    if (dk.cards.some(c => c.group === g && c.stage === -1))
+      return { mode: 'group', group: g, label: `学习第 ${g + 1} 组` };
+  }
+  return { mode: 'all', group: -1, label: `复习全部 ${dk.cards.length} 词` };
+}
+function secondaryAction() {
+  const dk = activeDeck();
+  if (!dk) return null;
+  const gc = groupCount(dk);
+  for (let g = 0; g < gc; g++) {
+    if (dk.cards.some(c => c.group === g && c.stage === -1))
+      return { mode: 'group', group: g, label: `学习第 ${g + 1} 组` };
+  }
+  return null;
+}
+
+/* ---------- 牌组分隔签栏 ---------- */
+function renderDeckStrip() {
+  const strip = $('#deckStrip');
+  if (!state.decks.length) { strip.innerHTML = ''; return; }
+  const now = Date.now();
+  strip.innerHTML = state.decks.map(d => {
+    const total = d.cards.length;
+    const m = d.cards.filter(isMastered).length;
+    const due = d.cards.filter(c => isDue(c, now)).length;
+    const on = d.id === state.activeDeckId;
+    return `<button class="deck-tab${on ? ' on' : ''}" data-id="${d.id}" title="${esc(d.name)}">
+      <span class="dt-name">${esc(d.name)}</span>
+      <span class="dt-meta">${total} 词 · ${total ? Math.round(m / total * 100) : 0}%${due ? ` · <b>${due} 到期</b>` : ''}</span>
+    </button>`;
+  }).join('') +
+  `<button class="deck-tab add" title="导入一个新牌组">
+     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+     导入新牌组
+   </button>`;
+}
+
+function switchDeck(id) {
+  if (id === state.activeDeckId) return;
+  state.activeDeckId = id;
+  saveState();
+  renderHome(true);
+}
+
+/* ---------- 首页渲染 ---------- */
+let primaryAct = null, secondaryAct = null;
+
+function renderHome(animate = false) {
+  const dk = activeDeck();
+  const hasDecks = state.decks.length > 0;
+  $('#deckStrip').style.display = hasDecks ? '' : 'none';
+  renderDeckStrip();
+
+  const has = !!dk && dk.cards.length > 0;
+  $('#homeMain').style.display = has ? '' : 'none';
+  $('#homeEmpty').style.display = has ? 'none' : '';
+  if (!has) return;
+
+  if (animate) {
+    const m = $('#homeMain');
+    m.classList.remove('swap'); void m.offsetWidth; m.classList.add('swap');
+  }
+
+  const now = Date.now();
+  const cards = dk.cards;
+  const counts = { new: 0, learn: 0, master: 0, due: 0 };
+  cards.forEach(c => {
+    if (c.stage === -1) counts.new++;
+    else if (isMastered(c)) counts.master++;
+    else counts.learn++;
+    if (isDue(c, now)) counts.due++;
+  });
+  const total = cards.length;
+  const pct = v => (v / total * 100) + '%';
+
+  $('#homeEyebrow').textContent = state.decks.length > 1
+    ? `当前牌组 · 共 ${state.decks.length} 个` : '当前牌组';
+  $('#deckTitle').textContent = dk.name || '未命名牌组';
+  $('#deckMeta').innerHTML =
+    `共 <b>${total}</b> 词 · 每组 <b>${dk.groupSize}</b> 词 · <b>${groupCount(dk)}</b> 组 · ` +
+    `<b>${dk.order === 'rand' ? '整本乱序' : '顺序'}背诵</b> · 掌握率 <b>${Math.round(counts.master / total * 100)}%</b>`;
+
+  primaryAct = primaryAction();
+  secondaryAct = primaryAct.mode === 'due' ? secondaryAction() : null;
+  const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16m0 0l-6-6m6 6l-6 6"/></svg>';
+  $('#btnPrimary').innerHTML = primaryAct.label + ' ' + arrow;
+  const sec = $('#btnSecondary');
+  sec.style.display = secondaryAct ? '' : 'none';
+  if (secondaryAct) sec.textContent = secondaryAct.label;
+
+  $('#numDue').textContent = counts.due;
+  $('#numNew').textContent = counts.new;
+  $('#numLearning').textContent = counts.learn;
+  $('#numMastered').textContent = counts.master;
+
+  const bars = $$('#segBar i');
+  bars[0].style.width = pct(counts.new);
+  bars[1].style.width = pct(counts.learn);
+  bars[2].style.width = pct(counts.master);
+
+  const next = cards.find(c => isDue(c, now)) || cards.find(c => c.stage === -1);
+  $('#nextWord').textContent = next ? next.word : 'well done.';
+
+  $('#logLine').textContent =
+    `坚持学习 ${dk.log.days.length} 天 · 累计复习 ${dk.log.reviews} 次 · 导入于 ` +
+    (dk.importedAt ? new Date(dk.importedAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' }) : '—');
+
+  renderGroups(dk);
+}
+
+function renderGroups(dk) {
+  const now = Date.now();
+  const gc = groupCount(dk);
+  $('#groupCount').textContent = gc;
+  $$('#sizePills .pill').forEach(p => p.classList.toggle('on', +p.dataset.size === dk.groupSize));
+  $$('#orderPills .pill').forEach(p => p.classList.toggle('on', p.dataset.order === dk.order));
+  $('#orderHint').textContent = dk.order === 'rand'
+    ? '乱序模式：整本词库已随机重排，各组为随机切片 · 序列已固定，刷新不变'
+    : '顺序模式：按词库导入顺序依次分组背诵';
+
+  const recG = primaryAct.mode === 'group' ? primaryAct.group : -1;
+  let h = '';
+  for (let g = 0; g < gc; g++) {
+    const idxs = groupIdxs(dk, g);
+    const n = idxs.length;
+    const m = idxs.filter(i => isMastered(dk.cards[i])).length;
+    const nw = idxs.filter(i => dk.cards[i].stage === -1).length;
+    const d = idxs.filter(i => isDue(dk.cards[i], now)).length;
+
+    let label, cls;
+    if (m === n)            { label = '✓ 已掌握'; cls = 'done'; }
+    else if (d > 0)         { label = `${d} 个到期`; cls = 'due'; }
+    else if (nw === n)      { label = '未开始'; cls = 'new'; }
+    else                    { label = `进行中 ${m}/${n}`; cls = 'prog'; }
+
+    h += `<button class="group-row${g === recG ? ' rec' : ''}" data-g="${g}">
+      <span class="g-no">${g + 1}</span>
+      <span class="g-mid">
+        <span class="g-name">第 ${g + 1} 组 <small>· ${n} 词</small>${g === recG ? '<em class="g-rec">下一个</em>' : ''}</span>
+        <span class="g-bar"><i style="width:${n ? (m / n * 100) : 0}%"></i></span>
+      </span>
+      <span class="g-state ${cls}">${label}</span>
+    </button>`;
+  }
+  $('#groupList').innerHTML = h;
+}
+
+/* ---------- 学习会话（绑定到开始时的牌组） ---------- */
+let session = null;      // { deckId, mode, speed, group, queue, total, newLearned, reviews, marked, skipped, startedAt }
+let flipped = false;
+let animating = false;
+let currentIdx = -1;
+
+const sessionDeck = () => state.decks.find(d => d.id === session.deckId);
+
+/* 组装队列：一律遵循牌组当前序列（cards 数组顺序）。
+   · speed：当前牌组全部"未归为熟悉"的词（新词 + 复习周期中），依次过一遍；
+   · group：该组全部词；due：只含到期词；all：整本。 */
+function buildQueue(dk, mode, group) {
+  const now = Date.now();
+  if (mode === 'speed')
+    return dk.cards.reduce((a, c, i) => { if (!isMastered(c)) a.push(i); return a; }, []);
+  if (mode === 'group')
+    return dk.cards.reduce((a, c, i) => (c.group === group && a.push(i), a), []);
+  if (mode === 'due')
+    return dk.cards.reduce((a, c, i) => (isDue(c, now) && a.push(i), a), []);
+  return dk.cards.map((c, i) => i);   // all
+}
+
+function startStudy(mode, group = -1) {
+  const dk = activeDeck();
+  if (!dk || !dk.cards.length) { toast('牌组是空的，先导入一份词库吧'); return; }
+  const queue = buildQueue(dk, mode, group);
+  if (!queue.length) {
+    toast(mode === 'speed' ? '没有可速刷的词 —— 都已归为熟悉'
+       : mode === 'group' ? '该组暂无到期词与新词' : '暂无需要复习的词');
+    return;
+  }
+  session = {
+    deckId: dk.id, mode, group, speed: mode === 'speed',
+    queue, total: queue.length,
+    newLearned: 0, reviews: 0, marked: 0, skipped: 0,
+    startedAt: Date.now()
+  };
+  flipped = false;
+  $('#gradeBar').classList.toggle('speed', session.speed);
+  $('#kbdHint').textContent = session.speed
+    ? '速刷 · 空格 翻看 · 1 不认识 · 3 认识 · E 结束'
+    : '空格 翻转 · 1 / 2 / 3 评分 · E 结束本轮';
+  showView('study');
+  nextCard(true);
+  if (session.speed)
+    toast('速刷模式：认识 → 直接归为熟悉；不认识 → 跳过，不安排复习');
+}
+
+function sessionName() {
+  if (!session) return '';
+  const dk = sessionDeck();
+  const deckPart = state.decks.length > 1 ? `「${dk ? dk.name : ''}」` : '';
+  if (session.speed) return (deckPart + '速刷分拣').trim();
+  if (session.mode === 'group') return `${deckPart}第 ${session.group + 1} 组`.trim();
+  return (deckPart + (session.mode === 'due' ? '到期复习' : '全部复习')).trim();
+}
+
+function nextCard(first) {
+  const wrap = $('#cardWrap');
+  const dk = sessionDeck();
+  currentIdx = session.queue[0];
+  const c = dk.cards[currentIdx];
+
+  wrap.classList.add('snap');
+  wrap.classList.remove('flipped');
+  fillCardFace(c);
+  void wrap.offsetWidth;
+  wrap.classList.remove('snap');
+
+  if (!first) { wrap.classList.add('enter'); setTimeout(() => wrap.classList.remove('enter'), 340); }
+  flipped = false;
+  // 速刷模式：无需翻卡即可评判；普通模式：评分栏等翻卡后激活
+  $('#gradeBar').classList.remove('ready');
+  if (session.speed) $('#gradeBar').classList.add('ready');
+  updateStudyHUD();
+}
+
+function fillCardFace(c) {
+  $('#cardWord').textContent = c.word;
+  $('#cardWordSm').textContent = c.word;
+  $('#cardMeaning').textContent = c.meaning;
+  const ex = $('#cardExample');
+  if (c.example) { ex.textContent = c.example; ex.style.display = ''; }
+  else ex.style.display = 'none';
+
+  const tag = $('#cardTag');
+  if (session.speed) {
+    tag.textContent = `速刷 · ${c.stage === -1 ? '新词' : '复习中'}`;
+    tag.className = 'card-tag-label is-speed';
+  } else if (c.stage === -1) {
+    tag.textContent = '新词'; tag.className = 'card-tag-label is-new';
+  } else if (c.stage >= MASTER_STAGE) {
+    tag.textContent = '巩固复习'; tag.className = 'card-tag-label is-master';
+  } else {
+    tag.textContent = `间隔复习 · 当前 ${EB_LABEL[c.stage]}档`; tag.className = 'card-tag-label is-learn';
+  }
+}
+
+function updateStudyHUD() {
+  const done = session.total - session.queue.length;
+  if (session.speed) {
+    $('#studyStat').innerHTML =
+      `${sessionName()} · 剩余 <b>${session.queue.length}</b> 张 · 已归熟 <b>${session.marked}</b>`;
+    $('#progressLabel').textContent = '速刷模式 · 认识归熟 · 不安排复习';
+  } else {
+    $('#studyStat').innerHTML = `${sessionName()} · 剩余 <b>${session.queue.length}</b> 张`;
+    $('#progressLabel').textContent = `${sessionName()} · ${Math.min(done + 1, session.total)} / ${session.total}`;
+  }
+  $('#progressBar').style.width = (done / session.total * 100) + '%';
+  $('#cardNo').textContent = `${Math.min(done + 1, session.total)} / ${session.total}`;
+}
+
+function flip() {
+  if (animating || currentView !== 'study') return;
+  flipped = !flipped;
+  $('#cardWrap').classList.toggle('flipped', flipped);
+  $('#gradeBar').classList.toggle('ready', flipped || !!session.speed);
+}
+
+/* 评分：
+   —— 速刷模式 ——
+   认识 → 直接归为熟悉（stage=8，30 天巩固档），移出当前复习计划；
+   不认识 → 仅跳下一张，词条状态与学习计划原封不动，不安排复习。
+   —— 普通模式（艾宾浩斯调度）——
+   认识 → 升一档，间隔拉长；模糊 → 重练当前档的一半；不认识 → 回退两档，回到 5 分钟周期。
+   会话内：答错隔 1 张重现、模糊隔 3 张重现（当日即时巩固，与跨日调度互补）。 */
+function grade(g) {
+  if (!session || animating || currentView !== 'study') return;
+  if (!session.speed && !flipped) return;
+  if (session.speed && g === 1) return;   // 速刷只有两档评判，忽略"模糊"
+
+  const dk = sessionDeck();
+  const card = dk.cards[currentIdx];
+  const now = Date.now();
+
+  session.reviews++;
+  dk.log.reviews++;
+  const today = new Date().toISOString().slice(0, 10);
+  if (!dk.log.days.includes(today)) dk.log.days.push(today);
+
+  if (session.speed) {
+    if (g === 2) {
+      card.stage = 8;                       // 直接归为熟悉（与正常完全掌握同档）
+      card.due = now + EB[8];               // 30 天后才可能进入巩固复习
+      card.reps = (card.reps || 0) + 1;
+      session.marked++;
+    } else {
+      session.skipped++;                    // 不认识：直接跳过，一切照旧
+    }
+    session.queue.shift();                  // 两种评判都直接出队，不回插
+  } else {
+    if (card.stage === -1) session.newLearned++;   // 首次见到即计入"新学"
+
+    let leave = false;
+    if (g === 2) {
+      card.stage = card.stage < 0 ? 0 : Math.min(card.stage + 1, EB.length - 1);
+      card.due = now + EB[card.stage];
+      leave = true;
+    } else if (g === 1) {
+      card.stage = Math.max(card.stage, 0);
+      card.due = now + Math.max(Math.round(EB[card.stage] / 2), EB[0]);
+    } else {
+      card.lapses = (card.lapses || 0) + 1;
+      card.stage = Math.max(Math.max(card.stage, 0) - 2, 0);
+      card.due = now + EB[0];
+    }
+    card.reps = (card.reps || 0) + 1;
+
+    session.queue.shift();
+    if (!leave) {
+      const gap = g === 0 ? 1 : 3;
+      session.queue.splice(Math.min(gap, session.queue.length), 0, currentIdx);
+    }
+  }
+  saveState();   // 每次评判即时保存
+
+  animating = true;
+  const wrap = $('#cardWrap');
+  wrap.classList.add(g === 2 ? 'fly-right' : 'fly-left');
+  setTimeout(() => {
+    wrap.classList.remove('fly-right', 'fly-left');
+    if (!session.queue.length) { animating = false; finishSession(); return; }
+    nextCard(false);
+    animating = false;
+  }, 360);
+}
+
+function finishSession() {
+  const dk = sessionDeck();
+  const mins = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
+
+  if (session.speed) {
+    $('#doneTitle').textContent = '速刷完成';
+    $('#doneNew').textContent = session.marked;
+    $('#doneNew').className = 'num green';
+    $('#doneLblNew').textContent = '归为熟悉';
+    $('#doneReviews').textContent = session.skipped;
+    $('#doneReviews').className = 'num';
+    $('#doneLblReviews').textContent = '跳过 · 保留原计划';
+    $('#doneTime').textContent = mins;
+    $('#doneLblTime').textContent = '用时（分钟）';
+
+    const rest = dk.cards.filter(c => !isMastered(c)).length;
+    $('#doneSub').textContent = rest > 0
+      ? `${session.marked} 个词已归为熟悉并移出当前复习安排，剩余 ${rest} 个词仍按原计划学习。`
+      : `「${dk.name}」已全部归为熟悉。需要巩固时，可回到首页"复习全部"。`;
+  } else {
+    $('#doneTitle').textContent = '本轮完成';
+    $('#doneNew').textContent = session.newLearned;
+    $('#doneNew').className = 'num';
+    $('#doneLblNew').textContent = '新学单词';
+    $('#doneReviews').textContent = session.reviews;
+    $('#doneReviews').className = 'num red';
+    $('#doneLblReviews').textContent = '复习次数';
+    $('#doneTime').textContent = mins;
+    $('#doneLblTime').textContent = '用时（分钟）';
+
+    const now = Date.now();
+    const dueCnt = dk.cards.filter(c => isDue(c, now)).length;
+    let sub;
+    if (dueCnt > 0) {
+      sub = `艾宾浩斯的时钟还在走 —— 「${dk.name}」另有 ${dueCnt} 个词已到期待复习。`;
+    } else {
+      let nextTs = Infinity;
+      dk.cards.forEach(c => { if (c.stage >= 0 && c.due > now && c.due < nextTs) nextTs = c.due; });
+      sub = nextTs < Infinity
+        ? `记忆正在巩固，下一批复习约在 ${fmtDue(nextTs)}，到时记得回来。`
+        : `「${dk.name}」已全部掌握，了不起。可以导入新词库，或切换其他牌组继续。`;
+    }
+    $('#doneSub').textContent = sub;
+  }
+  $('#btnAgain').textContent = primaryAction().label;
+  session.finished = true;
+  showView('done');
+}
+
+/* ---------- 事件绑定 ---------- */
+function goImport() {
+  imp = null;
+  $('#importConfig').classList.remove('show');
+  showView('import');
+}
+$('#btnGoImport').addEventListener('click', goImport);
+$('#btnGoImportEmpty').addEventListener('click', goImport);
+$('#btnBackHome').addEventListener('click', () => { showView('home'); renderHome(); });
+$('#btnSample').addEventListener('click', loadSample);
+
+/* 牌组分隔签：点击切换 / 加号导入 */
+$('#deckStrip').addEventListener('click', e => {
+  const add = e.target.closest('.deck-tab.add');
+  if (add) { goImport(); return; }
+  const tab = e.target.closest('.deck-tab[data-id]');
+  if (tab) switchDeck(tab.dataset.id);
+});
+
+const dz = $('#dropzone'), fileInput = $('#importFile');
+dz.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { handleFile(e.target.files[0]); e.target.value = ''; });
+['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+
+$('#cfgHeader').addEventListener('change', renderPreview);
+$('#cfgWord').addEventListener('change', renderPreview);
+$('#cfgMean').addEventListener('change', renderPreview);
+$('#cfgEx').addEventListener('change', renderPreview);
+$('#cfgGroupSize').addEventListener('change', renderPreview);
+$('#cfgOrder').addEventListener('change', renderPreview);
+$('#btnDoImport').addEventListener('click', doImport);
+
+$('#btnPrimary').addEventListener('click', () => startStudy(primaryAct.mode, primaryAct.group));
+$('#btnSecondary').addEventListener('click', () => {
+  if (secondaryAct) startStudy(secondaryAct.mode, secondaryAct.group);
+});
+
+/* 速刷模式入口：速刷当前牌组所有"未归为熟悉"的词 */
+$('#btnSpeed').addEventListener('click', () => {
+  const dk = activeDeck();
+  if (!dk || !dk.cards.length) { toast('牌组是空的，先导入一份词库吧'); return; }
+  const pool = dk.cards.filter(c => !isMastered(c));
+  if (!pool.length) { toast('这个牌组已全部归为熟悉，没有可速刷的词'); return; }
+  startStudy('speed');
+});
+
+/* 分组面板：点击某组开始学习 */
+$('#groupList').addEventListener('click', e => {
+  const row = e.target.closest('.group-row');
+  if (row) startStudy('group', +row.dataset.g);
+});
+
+/* 切换每组词数：按当前序列重新切组（乱序牌组按已固定的随机序列），调度进度保留 */
+$('#sizePills').addEventListener('click', async e => {
+  const pill = e.target.closest('.pill');
+  const dk = activeDeck();
+  if (!pill || !dk) return;
+  const size = +pill.dataset.size;
+  if (size === dk.groupSize) return;
+  const ok = await askConfirm({
+    title: `调整为每组 ${size} 词？`,
+    desc: `将按「${dk.name}」当前背诵序列${dk.order === 'rand' ? '（乱序牌组按已固定的随机序列）' : ''}重新划分分组边界。每个词的艾宾浩斯复习计划保持不变，其他牌组不受影响。`,
+    okText: '调整'
+  });
+  if (!ok) return;
+  regroup(dk, size);
+  saveState(); renderHome();
+  toast(`已切换为每组 ${size} 词 · 共 ${groupCount(dk)} 组`);
+});
+
+/* 切换背诵顺序：整本重排 + 重新分组（会改变每组内容，故弹确认；学习进度不变） */
+$('#orderPills').addEventListener('click', async e => {
+  const pill = e.target.closest('.pill');
+  const dk = activeDeck();
+  if (!pill || !dk) return;
+  const order = pill.dataset.order;
+  if (order === dk.order) return;
+  const toRand = order === 'rand';
+  const ok = await askConfirm({
+    title: toRand ? '整本乱序并重新分组？' : '恢复词库顺序并重新分组？',
+    desc: toRand
+      ? `将对「${dk.name}」的全部 ${dk.cards.length} 个词随机重排，再按新序列重新切分各组 —— 每组的内容会变成整本词库的随机切片，之后固定不变。每个词的艾宾浩斯复习进度保持不变。`
+      : `将恢复「${dk.name}」的导入原序并按原顺序重新分组。每个词的艾宾浩斯复习进度保持不变。`,
+    okText: toRand ? '乱序重排' : '恢复顺序'
+  });
+  if (!ok) return;
+  applyOrder(dk, order);
+  saveState(); renderHome();
+  toast(toRand ? '已整本乱序并重新分组 · 学习进度不变' : '已恢复导入顺序并重新分组 · 学习进度不变');
+});
+
+/* 牌组管理：重命名 / 重置进度 / 删除牌组 */
+$('#btnRename').addEventListener('click', async () => {
+  const dk = activeDeck();
+  if (!dk) return;
+  const name = await askPrompt({
+    title: '重命名牌组',
+    desc: '为当前牌组起一个新名字。',
+    value: dk.name, okText: '保存'
+  });
+  if (name === null) return;
+  dk.name = name;
+  saveState(); renderHome();
+  toast('牌组已重命名');
+});
+
+$('#btnReset').addEventListener('click', async () => {
+  const dk = activeDeck();
+  if (!dk) return;
+  const ok = await askConfirm({
+    title: `重置「${dk.name}」的进度？`,
+    desc: '该牌组所有词条将回到「待学习」状态，艾宾浩斯复习计划一并清零。牌组本身与分组保留，其他牌组不受影响。',
+    okText: '重置', danger: true
+  });
+  if (!ok) return;
+  dk.cards.forEach(c => { c.stage = -1; c.due = 0; c.reps = 0; c.lapses = 0; });
+  dk.log = { days: [], reviews: 0 };
+  saveState(); renderHome();
+  toast('该牌组进度已重置');
+});
+
+$('#btnDeleteDeck').addEventListener('click', async () => {
+  const dk = activeDeck();
+  if (!dk) return;
+  const ok = await askConfirm({
+    title: `删除牌组「${dk.name}」？`,
+    desc: '该牌组的全部词条与学习进度将被删除，且无法恢复。其他牌组不受影响。',
+    okText: '删除', danger: true
+  });
+  if (!ok) return;
+  state.decks = state.decks.filter(d => d.id !== dk.id);
+  state.activeDeckId = state.decks.length ? state.decks[0].id : '';
+  saveState(); renderHome();
+  toast(state.decks.length ? `已删除，已切换到「${activeDeck().name}」` : '牌组已删除');
+});
+
+/* 学习视图操作 */
+$('#cardWrap').addEventListener('click', flip);
+$('#btnExit').addEventListener('click', () => {
+  session = null;
+  showView('home'); renderHome();
+  toast('学习进度已保存');
+});
+$('#btnEnd').addEventListener('click', () => { if (session) finishSession(); });
+$$('.grade-btn').forEach(b => b.addEventListener('click', () => grade(+b.dataset.g)));
+
+/* 完成视图 */
+$('#btnAgain').addEventListener('click', () => {
+  const act = primaryAction();
+  startStudy(act.mode, act.group);
+});
+$('#btnDoneHome').addEventListener('click', () => { showView('home'); renderHome(); });
+
+document.addEventListener('keydown', e => {
+  if (currentView !== 'study' || $('#modalMask').classList.contains('show')) return;
+  if (e.code === 'Space') { e.preventDefault(); flip(); return; }
+  if (animating || !session) return;
+  if (!session.speed && !flipped) return;   // 速刷模式无需翻卡即可评分
+  if (e.key === '1') grade(0);
+  else if (e.key === '2') grade(1);
+  else if (e.key === '3') grade(2);
+  else if (e.key === 'e' || e.key === 'E') finishSession();
+});
+
+/* =========================================================
+   PWA · 可安装网页应用
+   目标：添加到桌面 / 主屏幕后以独立窗口运行，无浏览器菜单栏。
+   实现（单文件约束下）：
+   1) 运行时用 canvas 绘制品牌图标（data URL）；
+   2) 动态生成 manifest（Blob URL）注入 <head>，
+      start_url 指向当前页面，display: standalone；
+   3) 监听 beforeinstallprompt，顶栏"安装"按钮触发原生安装；
+   4) iOS 走 Safari「添加到主屏幕」，依赖 <head> 中的专用 meta；
+   5) 检测独立窗口模式，做刘海屏安全区适配。
+   说明：安装要求页面经 http/https 访问；file:// 双击打开时
+   功能不受影响，安装按钮会给出本地起服务/托管的指引。
+   ========================================================= */
+
+let deferredInstall = null;
+let appInstalled = false;
+
+function isStandalone() {
+  const m = s => window.matchMedia && window.matchMedia(s).matches;
+  return m('(display-mode: standalone)') || m('(display-mode: fullscreen)') ||
+         m('(display-mode: minimal-ui)') || window.navigator.standalone === true;
+}
+function applyDisplayMode() {
+  const sa = isStandalone() || appInstalled;
+  document.body.classList.toggle('standalone', isStandalone());
+  $('#btnInstall').style.display = sa ? 'none' : '';
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  $('#btnInstall').classList.add('ready');   // 红点提示：可安装
+});
+window.addEventListener('appinstalled', () => {
+  deferredInstall = null;
+  appInstalled = true;
+  $('#btnInstall').classList.remove('ready');
+  applyDisplayMode();
+  toast('已安装 · 之后可从桌面直接打开');
+});
+const mqlSA = window.matchMedia && window.matchMedia('(display-mode: standalone)');
+if (mqlSA && mqlSA.addEventListener) mqlSA.addEventListener('change', applyDisplayMode);
+
+/* 圆角矩形（兼容无 ctx.roundRect 的浏览器） */
+function rrPath(x, px, py, w, h, r) {
+  if (x.roundRect) { x.beginPath(); x.roundRect(px, py, w, h, r); return; }
+  x.beginPath();
+  x.moveTo(px + r, py);
+  x.arcTo(px + w, py, px + w, py + h, r);
+  x.arcTo(px + w, py + h, px, py + h, r);
+  x.arcTo(px, py + h, px, py, r);
+  x.arcTo(px, py, px + w, py, r);
+  x.closePath();
+}
+
+/* 品牌图标：纸底 + 淡蓝格线（索引卡）+ 微旋转朱红印章「拾」 */
+function makeIcon(size, kind) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  const s = size / 512;
+  x.fillStyle = '#F6F1E7';
+  x.fillRect(0, 0, size, size);
+  x.strokeStyle = 'rgba(111,143,163,.30)';
+  x.lineWidth = 2.4 * s;
+  for (let ly = 112 * s; ly <= size - 34 * s; ly += 44 * s) {
+    x.beginPath(); x.moveTo(30 * s, ly); x.lineTo(size - 30 * s, ly); x.stroke();
+  }
+  const seal = (kind === 'maskable' ? 328 : 372) * s;   // maskable 留中心 80% 安全区
+  x.save();
+  x.translate(size / 2, size / 2);
+  x.rotate(-4 * Math.PI / 180);
+  x.shadowColor = 'rgba(60,45,20,.28)';
+  x.shadowBlur = 10 * s;
+  x.shadowOffsetY = 3 * s;
+  x.fillStyle = '#C13B22';
+  rrPath(x, -seal / 2, -seal / 2, seal, seal, 16 * s);
+  x.fill();
+  x.restore();
+  x.fillStyle = '#FBF6EC';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = `600 ${Math.round(seal * 0.52)}px "Noto Serif SC","Noto Serif CJK SC","Songti SC",serif`;
+  x.fillText('拾', size / 2, size / 2 + size * 0.01);
+  return c.toDataURL('image/png');
+}
+
+/* 注入 favicon / apple-touch-icon / manifest */
+function injectPWA() {
+  const i192 = makeIcon(192, 'any');
+  const i512 = makeIcon(512, 'any');
+  const m512 = makeIcon(512, 'maskable');
+  const a180 = makeIcon(180, 'any');
+
+  const fav = document.createElement('link');
+  fav.rel = 'icon'; fav.type = 'image/png'; fav.href = i192;
+  document.head.appendChild(fav);
+
+  const apple = document.createElement('link');
+  apple.rel = 'apple-touch-icon'; apple.href = a180;
+  document.head.appendChild(apple);
+
+  const clean = new URL(location.href);
+  clean.hash = '';
+  const scope = new URL('./', clean).href;
+  const manifest = {
+    id: scope,
+    name: '拾词 · 闪卡背单词',
+    short_name: '拾词',
+    description: 'CSV 导入词库，艾宾浩斯遗忘曲线复习计划，分组学习与速刷分拣，数据保存在本机。',
+    start_url: clean.href,
+    scope,
+    display: 'standalone',
+    background_color: '#F6F1E7',
+    theme_color: '#F6F1E7',
+    lang: 'zh-CN',
+    dir: 'ltr',
+    icons: [
+      { src: i192, sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: i512, sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: m512, sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
+  };
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' }));
+  document.head.appendChild(link);
+}
+
+async function initPWA() {
+  applyDisplayMode();
+  // 等待品牌字体就绪（限时 2 秒），保证图标字形与站内印章一致；失败回退系统衬线
+  try {
+    if (document.fonts) {
+      await Promise.race([
+        document.fonts.load('600 220px "Noto Serif SC"', '拾').catch(() => {}),
+        new Promise(r => setTimeout(r, 2000))
+      ]);
+    }
+  } catch {}
+  try { injectPWA(); } catch {}   // 任何环境异常均静默降级，不影响主功能
+}
+initPWA();
+
+/* 安装按钮：有原生事件则直接触发；否则给出对应平台的指引 */
+$('#btnInstall').addEventListener('click', async () => {
+  if (deferredInstall) {
+    deferredInstall.prompt();
+    try { await deferredInstall.userChoice; } catch {}
+    deferredInstall = null;
+    $('#btnInstall').classList.remove('ready');
+    return;
+  }
+  const ua = navigator.userAgent || '';
+  const isIOS = /iphone|ipad|ipod/i.test(ua) ||
+    (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+  if (isIOS) {
+    askConfirm({
+      title: '添加到主屏幕',
+      desc: 'iOS 请使用 Safari 的方式安装：\n1. 点击底部分享按钮（方框加向上箭头）\n2. 选择「添加到主屏幕」\n\n之后从主屏幕图标打开，即为不显示 Safari 工具栏的全屏应用。',
+      okText: '我知道了'
+    });
+  } else if (location.protocol === 'file:') {
+    askConfirm({
+      title: '安装需要网页服务',
+      desc: '双击打开的本地文件无法安装为应用。两种方式：\n\n① 本地临时服务：在文件所在目录运行\n    python -m http.server 8000\n  再访问 http://localhost:8000/（文件名）\n\n② 把此 HTML 上传到任意静态托管（GitHub Pages、Netlify 等）\n\n通过 http/https 打开页面后，点「安装」即可添加到桌面。',
+      okText: '我知道了'
+    });
+  } else {
+    askConfirm({
+      title: '安装到桌面',
+      desc: '当前浏览器尚未触发安装事件：\n· 桌面请使用 Chrome / Edge，点地址栏右侧的安装图标\n· macOS Safari 可用「文件 → 添加到程序坞」\n· 安卓 Chrome 从菜单选「安装应用」\n\n安装后将在独立窗口运行，没有浏览器菜单栏。',
+      okText: '我知道了'
+    });
+  }
+});
+
+/* ---------- 启动 ---------- */
+renderHome();
+showView('home');
+</script>
+</body>
+</html>
