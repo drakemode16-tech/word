@@ -73,6 +73,7 @@ html[data-theme="dark"]{
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;overscroll-behavior:none}
 body{
+  --page-gutter:36px;
   background:var(--paper-solid);
   color:var(--ink);
   font-family:var(--sans); font-size:15px; line-height:1.7;
@@ -119,7 +120,9 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{ou
   box-shadow:0 1px 0 rgba(255,255,255,.3) inset,0 4px 24px -18px var(--shadow);
 }
 .topbar-inner{
-  max-width:1060px;margin:0 auto;padding:14px 36px;
+  max-width:1060px;margin:0 auto;
+  padding:calc(14px + env(safe-area-inset-top, 0px)) max(var(--page-gutter), env(safe-area-inset-right, 0px))
+    14px max(var(--page-gutter), env(safe-area-inset-left, 0px));
   display:flex;justify-content:space-between;align-items:center;
   flex-wrap:wrap;gap:10px;
 }
@@ -179,20 +182,12 @@ html[data-theme="dark"] .btn-theme .icon-moon{display:none}
 .btn-install.ready .dot{display:block}
 body.view-study #topbar{display:none}
 
-/* 独立窗口（PWA standalone）安全区适配 */
-body.standalone .topbar-inner{padding-top:calc(14px + env(safe-area-inset-top))}
-body.standalone main{
-  padding-left:max(36px,env(safe-area-inset-left));
-  padding-right:max(36px,env(safe-area-inset-right));
+main{
+  max-width:1060px;margin:0 auto;position:relative;z-index:1;
+  padding:0 max(var(--page-gutter), env(safe-area-inset-right, 0px))
+    calc(90px + env(safe-area-inset-bottom, 0px)) max(var(--page-gutter), env(safe-area-inset-left, 0px));
 }
-body.standalone #studyView{
-  padding-top:calc(16px + env(safe-area-inset-top));
-  padding-bottom:calc(24px + env(safe-area-inset-bottom));
-  padding-left:max(20px,env(safe-area-inset-left));
-  padding-right:max(20px,env(safe-area-inset-right));
-}
-
-main{max-width:1060px;margin:0 auto;padding:0 36px 90px;position:relative;z-index:1}
+body.view-study main{padding:0;overflow-x:clip}
 
 /* ============ 视图切换 ============ */
 .view{display:none}
@@ -459,13 +454,20 @@ table.preview .en{font-family:var(--serif-en);font-size:15px}
 
 /* ============ 学习视图 ============ */
 #studyView{
+  --study-gutter:20px;
+  --study-top-padding:16px;
+  --study-bottom-padding:24px;
   max-width:900px;margin:0 auto;
   min-height:100vh;
   min-height:100dvh;
-  display:flex;flex-direction:column;
-  padding:16px 20px 24px;
+  flex-direction:column;
+  padding:calc(var(--study-top-padding) + env(safe-area-inset-top, 0px))
+    max(var(--study-gutter), env(safe-area-inset-right, 0px))
+    calc(var(--study-bottom-padding) + env(safe-area-inset-bottom, 0px))
+    max(var(--study-gutter), env(safe-area-inset-left, 0px));
   position:relative;z-index:1;
 }
+#studyView.active{display:flex}
 .study-top{display:flex;justify-content:space-between;align-items:center;gap:14px}
 .study-stat{
   font-size:13px;color:var(--ink-soft);flex:1;text-align:center;min-width:0;
@@ -743,11 +745,11 @@ html[data-theme="dark"] #modalMask{background:rgba(0,0,0,.55)}
   .group-list{max-height:300px}
 }
 @media (max-width:560px){
+  body{--page-gutter:18px}
   body::after{opacity:.022}
   html[data-theme="dark"] body::after{opacity:.015}
 
-  .topbar-inner,main{padding-left:18px;padding-right:18px}
-  .topbar-inner{padding-top:12px;padding-bottom:12px}
+  .topbar-inner{padding-top:calc(12px + env(safe-area-inset-top, 0px));padding-bottom:12px}
   .brand-sub{display:none}
   .btn-install,.btn-import-top{padding:8px 12px;font-size:12.5px}
   .btn-theme{width:34px;height:34px}
@@ -768,18 +770,18 @@ html[data-theme="dark"] #modalMask{background:rgba(0,0,0,.55)}
   #importView{padding-top:28px}
   .dropzone{padding:40px 18px}
 
-  #studyView{padding:12px 14px calc(16px + env(safe-area-inset-bottom))}
+  #studyView{--study-gutter:16px;--study-top-padding:12px;--study-bottom-padding:16px}
   .study-top{gap:8px}
   .study-stat{font-size:12px}
+  .btn-back,.btn-end{min-height:44px}
   .btn-end{padding:6px 10px;font-size:12px}
   .progress{margin:12px 0 4px}
   .progress-label{margin-bottom:4px;letter-spacing:.12em;font-size:10.5px}
-  .stage{padding:12px 0 8px}
+  .stage{flex:none;margin-top:auto;padding:12px 0 14px}
   .card-inner{
-    min-height:320px;
-    height:400px;
-    height:min(460px,calc(100vh - 280px));
-    height:min(460px,calc(100dvh - 280px));
+    min-height:250px;
+    height:min(420px,48vh);
+    height:min(420px,48dvh);
   }
   .face{border-radius:20px;padding:56px 18px 42px}
   .face.back{padding:54px 16px 16px}
@@ -792,9 +794,9 @@ html[data-theme="dark"] #modalMask{background:rgba(0,0,0,.55)}
   .card-meaning{font-size:clamp(18px,5.2vw,24px)}
   .card-word-sm{font-size:clamp(14px,4.2vw,16px)}
   .grade-bar{gap:8px}
-  .grade-btn{padding:14px 6px;font-size:13.5px;letter-spacing:.04em;border-radius:14px}
+  .grade-btn{min-height:48px;padding:10px 6px;font-size:14px;letter-spacing:.04em;border-radius:14px}
   .grade-btn kbd{display:none}
-  .kbd-hint{font-size:10.5px;margin-top:10px}
+  .kbd-hint{font-size:12px;margin-top:10px;margin-bottom:auto}
 
   .done-stats{gap:30px}
   .done-stats .num{font-size:38px}
@@ -802,11 +804,11 @@ html[data-theme="dark"] #modalMask{background:rgba(0,0,0,.55)}
 }
 @media (orientation:landscape) and (max-height:500px){
   .kbd-hint,.card-hint,.progress-label{display:none}
-  #studyView{padding:8px 14px 10px}
-  .stage{padding:6px 0}
+  #studyView{--study-gutter:14px;--study-top-padding:8px;--study-bottom-padding:10px}
+  .stage{flex:1;margin-top:0;padding:6px 0}
   .progress{margin:8px 0 2px}
   .card-inner{
-    min-height:240px;
+    min-height:180px;
     height:min(320px,calc(100vh - 190px));
     height:min(320px,calc(100dvh - 190px));
   }
@@ -1122,7 +1124,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const uid = () => 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-const IS_TOUCH = (window.matchMedia && matchMedia('(hover: none)').matches) || 'ontouchstart' in window;
+const IS_TOUCH = navigator.maxTouchPoints > 0 || (window.matchMedia && matchMedia('(hover: none)').matches);
 
 function detectLang(text) {
   if (!text) return '';
@@ -1569,6 +1571,11 @@ function loadSample() {
 /* ---------- 视图管理 ---------- */
 let currentView = 'home';
 function showView(name) {
+  if (currentView === 'study' && name !== 'study') {
+    clearTimeout(advanceTimer);
+    animating = false;
+    $('#cardWrap').classList.remove('fly-right', 'fly-left');
+  }
   currentView = name;
   $$('.view').forEach(v => v.classList.remove('active'));
   $('#' + name + 'View').classList.add('active');
@@ -1730,6 +1737,7 @@ function renderGroups(dk) {
 let session = null;
 let flipped = false;
 let animating = false;
+let advanceTimer;
 let currentIdx = -1;
 const sessionDeck = () => state.decks.find(d => d.id === session.deckId);
 
@@ -1901,7 +1909,7 @@ function grade(g) {
   animating = true;
   const wrap = $('#cardWrap');
   wrap.classList.add(g === 2 ? 'fly-right' : 'fly-left');
-  setTimeout(() => {
+  advanceTimer = setTimeout(() => {
     wrap.classList.remove('fly-right', 'fly-left');
     if (!session.queue.length) { animating = false; finishSession(); return; }
     nextCard(false);
@@ -2121,7 +2129,6 @@ function isStandalone() {
 }
 function applyDisplayMode() {
   const sa = isStandalone() || appInstalled;
-  document.body.classList.toggle('standalone', isStandalone());
   $('#btnInstall').style.display = sa ? 'none' : '';
 }
 window.addEventListener('beforeinstallprompt', e => {
