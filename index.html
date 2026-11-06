@@ -1317,7 +1317,13 @@ const SAMPLE_DECK = [
 function detectDelimiter(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim()).slice(0, 5);
   const counts = { ',': 0, ';': 0, '\t': 0 };
-  lines.forEach(l => { for (const ch of l) if (ch in counts) counts[ch]++; });
+  lines.forEach(l => {
+    let inQ = false;
+    for (const ch of l) {
+      if (ch === '"') inQ = !inQ;
+      else if (!inQ && ch in counts) counts[ch]++;
+    }
+  });
   let best = ',', max = 0;
   for (const [d, n] of Object.entries(counts)) if (n > max) { max = n; best = d; }
   return max > 0 ? best : ',';
@@ -1362,7 +1368,7 @@ function autoDetectColumns(rows, hasHeader) {
   scores.forEach((s, i) => { if (s.en > 0.45 && s.en > scores[wordCol].en) wordCol = i; });
   let meanCol = -1, bestCjk = 0.15;
   scores.forEach((s, i) => { if (i !== wordCol && s.cjk > bestCjk) { bestCjk = s.cjk; meanCol = i; } });
-  if (meanCol === -1) meanCol = wordCol === 0 ? Math.min(1, colCount - 1) : 0;
+  if (meanCol === -1 && colCount > 1) meanCol = wordCol === 0 ? 1 : 0;
 
   let exCol = -1;
   if (hasHeader) {
@@ -1421,6 +1427,15 @@ function fillSelect(sel, cols, chosen) {
   });
   sel.value = (chosen === -1 || chosen >= cols.length) ? 0 : chosen;
 }
+function fillMeanSelect(sel, cols, chosen) {
+  sel.innerHTML = '<option value="-1">不使用释义</option>';
+  cols.forEach((name, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = `第 ${i + 1} 列 · ${name}`;
+    sel.appendChild(o);
+  });
+  sel.value = (chosen >= 0 && chosen < cols.length) ? chosen : '-1';
+}
 function fillExSelect(sel, cols, chosen) {
   sel.innerHTML = '<option value="-1">不使用</option>';
   cols.forEach((name, i) => {
@@ -1438,7 +1453,7 @@ function buildConfigUI() {
     cols.push(sample || '（空列）');
   }
   fillSelect($('#cfgWord'), cols, imp.wordCol);
-  fillSelect($('#cfgMean'), cols, imp.meanCol);
+  fillMeanSelect($('#cfgMean'), cols, imp.meanCol);
   fillExSelect($('#cfgEx'), cols, imp.exCol);
   $('#cfgHeader').checked = imp.hasHeader;
   $('#importConfig').classList.add('show');
@@ -1451,8 +1466,8 @@ function readConfig() {
   imp.exCol = +$('#cfgEx').value;
   if (imp.meanCol === imp.wordCol) {
     const n = Math.max(...imp.rows.slice(0, 20).map(r => r.length));
-    imp.meanCol = imp.wordCol === 0 ? Math.min(1, n - 1) : 0;
-    fillSelect($('#cfgMean'), [...$('#cfgMean').options].map(o => o.textContent), imp.meanCol);
+    imp.meanCol = n > 1 ? (imp.wordCol === 0 ? 1 : 0) : -1;
+    $('#cfgMean').value = String(imp.meanCol);
   }
   if (imp.exCol === imp.wordCol || imp.exCol === imp.meanCol) {
     imp.exCol = -1; $('#cfgEx').value = '-1';
@@ -1462,7 +1477,8 @@ function renderPreview() {
   readConfig();
   const head = $('#previewHead'), body = $('#previewBody');
   const colCount = Math.max(...imp.rows.slice(0, 20).map(r => r.length));
-  const roles = { [imp.wordCol]: 'word', [imp.meanCol]: 'mean' };
+  const roles = { [imp.wordCol]: 'word' };
+  if (imp.meanCol >= 0) roles[imp.meanCol] = 'mean';
   if (imp.exCol >= 0) roles[imp.exCol] = 'ex';
   let h = '<tr>';
   for (let i = 0; i < colCount; i++) {
@@ -1501,7 +1517,7 @@ function doImport() {
   const seen = new Set(); const cards = []; let dup = 0, skipped = 0;
   dataRows().forEach(r => {
     const w = (r[imp.wordCol] || '').trim();
-    const m = (r[imp.meanCol] !== undefined ? r[imp.meanCol] : '').trim();
+    const m = imp.meanCol >= 0 && r[imp.meanCol] !== undefined ? r[imp.meanCol].trim() : '';
     const ex = imp.exCol >= 0 ? (r[imp.exCol] || '').trim() : '';
     if (!w) { skipped++; return; }
     const key = w.toLowerCase();
